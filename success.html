@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>☠ INITIATION RECEIVED - SHADOW LURKERS ☠</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            min-height: 100vh;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .horror-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -10;
+        }
+
+        .bg-image {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: url('https://i.ibb.co/3515rVy5/file-1439.jpg');
+            background-size: cover;
+            background-position: center;
+            filter: brightness(0.2) contrast(1.5);
+            animation: slowZoom 60s infinite alternate;
+        }
+
+        @keyframes slowZoom {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.1); }
+        }
+
+        .blood-overlay {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 50% 50%, transparent 0%, rgba(0, 0, 0, 0.7) 100%);
+        }
+
+        .floating-skull {
+            position: fixed;
+            font-size: 4rem;
+            color: rgba(255, 0, 60, 0.1);
+            animation: floatSkull 20s infinite linear;
+            pointer-events: none;
+        }
+
+        @keyframes floatSkull {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.3; }
+            90% { opacity: 0.3; }
+            100% { transform: translateY(-100px) rotate(360deg); opacity: 0; }
+        }
+
+        .success-container {
+            position: relative;
+            max-width: 800px;
+            margin: 5vh auto;
+            padding: 2rem;
+            z-index: 10;
+            animation: containerAppear 2s ease-out;
+        }
+
+        @keyframes containerAppear {
+            0% { opacity: 0; transform: translateY(50px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        .ritual-seal {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .seal-glow {
+            font-size: 5rem;
+            color: #ff003c;
+            text-shadow: 0 0 30px #ff003c, 0 0 60px #c77dff;
+            animation: sealPulse 3s infinite;
+        }
+
+        @keyframes sealPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); text-shadow: 0 0 50px #ff003c, 0 0 90px #c77dff; }
+        }
+
+        .horror-card {
+            background: rgba(5, 0, 10, 0.85);
+            backdrop-filter: blur(10px);
+            border: 2px solid #ff003c;
+            padding: 3rem;
+            position: relative;
+            box-shadow: 0 0 50px rgba(255, 0, 60, 0.3);
+        }
+
+        .horror-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border: 2px solid transparent;
+            border-image: repeating-linear-gradient(45deg, #ff003c, #c77dff, #ff003c) 30;
+            animation: borderRotate 4s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes borderRotate {
+            0% { border-image-source: repeating-linear-gradient(0deg, #ff003c, #c77dff, #ff003c); }
+            100% { border-image-source: repeating-linear-gradient(360deg, #ff003c, #c77dff, #ff003c); }
+        }
+
+        .glitch-title {
+            font-size: 2.8rem;
+            color: #ff003c;
+            text-align: center;
+            margin-bottom: 2rem;
+            animation: glitchText 3s infinite;
+            position: relative;
+        }
+
+        .glitch-title::before,
+        .glitch-title::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+        }
+
+        .glitch-title::before {
+            left: 2px;
+            text-shadow: -2px 0 #c77dff;
+            animation: glitch-anim-1 2s infinite;
+        }
+
+        .glitch-title::after {
+            left: -2px;
+            text-shadow: 2px 0 #00ffff;
+            animation: glitch-anim-2 3s infinite;
+        }
+
+        @keyframes glitch-anim-1 {
+            0%,100% { clip: rect(0,900px,0,0); }
+            50% { clip: rect(20px,900px,40px,0); }
+        }
+
+        .oat-container {
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid #ff003c;
+            padding: 2rem;
+            margin: 2rem 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .oat-container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,0,60,0.1) 10px, rgba(255,0,60,0.1) 20px);
+            animation: oatShift 10s linear infinite;
+        }
+
+        @keyframes oatShift {
+            0% { transform: translate(0,0) rotate(0deg); }
+            100% { transform: translate(10%,10%) rotate(45deg); }
+        }
+
+        .oat-label {
+            color: #c77dff;
+            font-size: 1rem;
+            letter-spacing: 3px;
+            margin-bottom: 1rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .oat-value {
+            font-size: 2.5rem;
+            color: #ff003c;
+            font-family: monospace;
+            word-break: break-all;
+            text-shadow: 0 0 10px #ff003c;
+            animation: oatPulse 2s infinite;
+            position: relative;
+            z-index: 2;
+        }
+
+        @keyframes oatPulse {
+            0%,100% { text-shadow: 0 0 10px #ff003c; }
+            50% { text-shadow: 0 0 20px #ff003c, 0 0 40px #c77dff; }
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            margin: 2.5rem 0;
+        }
+
+        .info-item {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 1.2rem;
+            border-left: 3px solid #ff003c;
+            position: relative;
+            transition: all 0.3s;
+        }
+
+        .info-item:hover {
+            transform: translateX(5px);
+            border-left-color: #c77dff;
+        }
+
+        .info-label {
+            color: #c77dff;
+            font-size: 0.85rem;
+            letter-spacing: 1.5px;
+            margin-bottom: 0.5rem;
+        }
+
+        .info-value {
+            color: #ff3366;
+            font-size: 1.2rem;
+        }
+
+        .whisper-text {
+            color: #c77dff;
+            line-height: 1.8;
+            margin: 2rem 0;
+            font-size: 1rem;
+            text-align: center;
+            font-style: italic;
+            animation: whisper 4s infinite;
+        }
+
+        @keyframes whisper {
+            0%,100% { opacity: 0.7; }
+            50% { opacity: 1; letter-spacing: 2px; }
+        }
+
+        .return-btn {
+            display: inline-block;
+            padding: 1rem 3rem;
+            background: transparent;
+            border: 2px solid #c77dff;
+            color: #c77dff;
+            text-decoration: none;
+            font-size: 1rem;
+            letter-spacing: 2px;
+            transition: all 0.3s;
+            margin-top: 2rem;
+        }
+
+        .return-btn:hover {
+            background: rgba(199, 125, 255, 0.1);
+            border-color: #ff003c;
+            color: #ff003c;
+            box-shadow: 0 0 20px rgba(255, 0, 60, 0.3);
+        }
+
+        .warning-footer {
+            margin-top: 2rem;
+            padding: 1rem;
+            border-top: 1px solid #330033;
+            color: #555;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        .horror-quote {
+            text-align: center;
+            margin: 1.5rem 0;
+            color: #888;
+            font-size: 0.9rem;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .success-container { padding: 1rem; }
+            .glitch-title { font-size: 1.8rem; }
+            .oat-value { font-size: 1.8rem; }
+            .info-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="horror-bg">
+        <div class="bg-image"></div>
+        <div class="blood-overlay"></div>
+    </div>
+
+    <div class="floating-skull" style="left:10%;">💀</div>
+    <div class="floating-skull" style="left:30%; animation-delay:5s;">👻</div>
+    <div class="floating-skull" style="left:50%; animation-delay:2s;">💀</div>
+    <div class="floating-skull" style="left:70%; animation-delay:7s;">👁️</div>
+    <div class="floating-skull" style="left:90%; animation-delay:3s;">👤</div>
+
+    <div class="success-container">
+        <div class="ritual-seal">
+            <div class="seal-glow">𓃼≛⃝͙𓃼</div>
+        </div>
+
+        <div class="horror-card">
+            <h1 class="glitch-title" data-text="☠ THE SHADOWS ACCEPT ☠">☠ THE SHADOWS ACCEPT ☠</h1>
+            
+            <div class="oat-container">
+                <div class="oat-label">YOUR OFFICIAL ASSIGNED TAG</div>
+                <div class="oat-value" id="oat-display">𓃼 INITIATE 𓃼</div>
+            </div>
+
+            <div class="info-grid" id="user-data"></div>
+
+            <div class="whisper-text">
+                The Veil has recorded your soul in the Silent Ledger
+            </div>
+
+            <div class="horror-quote" id="random-quote"></div>
+
+            <div style="text-align: center;">
+                <a href="index.html" class="return-btn">⟲ RETURN TO THE VEIL</a>
+            </div>
+
+            <div class="warning-footer">
+                <span>☠</span> THE SILENT LEDGER NEVER FORGETS <span>☠</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Random horror quotes
+        const quotes = [
+            "The shadows are watching you...",
+            "Your soul is now bound to the Veil",
+            "The Elders have been summoned",
+            "Your OAT is your curse now",
+            "The Silent Ledger records all",
+            "You belong to the darkness now",
+            "The shadows remember your name"
+        ];
+
+        function changeQuote() {
+            const q = quotes[Math.floor(Math.random() * quotes.length)];
+            document.getElementById('random-quote').textContent = '☬ "' + q + '" ☬';
+        }
+        changeQuote();
+        setInterval(changeQuote, 5000);
+
+        // Load user data
+        try {
+            const data = JSON.parse(localStorage.getItem('shadow_initiate') || '{}');
+            const container = document.getElementById('user-data');
+            const oatDisplay = document.getElementById('oat-display');
+            
+            if (data.name) {
+                oatDisplay.textContent = data.oat || data.name + '𓃼';
+                
+                const items = [
+                    { label: 'SHADOW NAME', value: data.name },
+                    { label: 'MONIKER', value: data.moniker || '𓃼' + data.name },
+                    { label: 'GENDER', value: data.gender || 'Unknown' },
+                    { label: 'TELEGRAM', value: data.telegram || '@unknown' },
+                    { label: 'ARCHETYPE', value: data.role || 'Initiate' },
+                    { label: 'AGE', value: data.age || 'Unknown' }
+                ];
+                
+                container.innerHTML = items.map(item => `
+                    <div class="info-item">
+                        <div class="info-label">${item.label}</div>
+                        <div class="info-value">${item.value}</div>
+                    </div>
+                `).join('');
+            }
+        } catch (e) {}
+    </script>
+</body>
+</html>
