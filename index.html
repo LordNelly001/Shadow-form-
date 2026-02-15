@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SHADOW LURKERS ☬ Initiation Portal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #000000;
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Background */
+        .bg-fixed-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1000;
+        }
+
+        .bg-image {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: url('https://i.ibb.co/3515rVy5/file-1439.jpg');
+            background-size: cover;
+            background-position: center;
+            filter: brightness(0.3) contrast(1.3);
+        }
+
+        .dark-overlay {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+        }
+
+        .fog-animation {
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 30% 30%, transparent 20%, rgba(60, 0, 120, 0.1) 40%);
+            animation: fogRotate 120s infinite linear;
+        }
+
+        @keyframes fogRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #particles-js {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            z-index: -900;
+        }
+
+        /* Header */
+        .header-fixed {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            padding: 1.5rem 0;
+            background: rgba(0, 0, 0, 0.95);
+            border-bottom: 1px solid rgba(255, 0, 60, 0.3);
+            text-align: center;
+        }
+
+        .glitch-title-main {
+            font-family: 'Arial Black', sans-serif;
+            font-size: 3.5rem;
+            color: #ff003c;
+            text-shadow: 0 0 15px #ff003c, 0 0 30px #ff003c;
+            letter-spacing: 6px;
+            display: inline-block;
+            padding: 0.5rem 2rem;
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid rgba(255, 0, 60, 0.5);
+            animation: glitch 3s infinite;
+        }
+
+        @keyframes glitch {
+            0%, 100% { transform: translate(0); }
+            20% { transform: translate(-2px, 2px); }
+            40% { transform: translate(2px, -2px); }
+        }
+
+        .floating-emblem-main {
+            font-size: 2rem;
+            color: #c77dff;
+            margin-top: 0.5rem;
+            animation: floatEmblem 4s ease-in-out infinite;
+        }
+
+        @keyframes floatEmblem {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(180deg); }
+        }
+
+        /* Main Content */
+        .main-content {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Intro Section */
+        .intro-section {
+            background: linear-gradient(135deg, rgba(10, 0, 20, 0.95), rgba(20, 0, 40, 0.9));
+            border: 1px solid #2b002b;
+            padding: 2.5rem;
+            border-radius: 5px;
+            box-shadow: 0 0 40px rgba(170, 0, 255, 0.25);
+        }
+
+        .intro-title {
+            font-size: 2.8rem;
+            color: #ff3366;
+            border-left: 4px solid #c77dff;
+            padding-left: 1.5rem;
+            margin-bottom: 2rem;
+            text-shadow: 0 0 15px rgba(255, 51, 102, 0.7);
+        }
+
+        .quote-container {
+            margin: 2rem 0;
+            padding: 1.5rem;
+            background: rgba(0, 0, 0, 0.5);
+            border-left: 3px solid #ff003c;
+        }
+
+        .quote-text {
+            font-size: 1.3rem;
+            color: #c77dff;
+            font-style: italic;
+            animation: quoteFloat 5s infinite;
+        }
+
+        @keyframes quoteFloat {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(10px); }
+        }
+
+        .intro-text {
+            line-height: 1.8;
+            color: #d8d8d8;
+            font-size: 1.15rem;
+            text-align: justify;
+        }
+
+        .intro-text p {
+            margin-bottom: 1.5rem;
+            padding-left: 1rem;
+            position: relative;
+        }
+
+        .intro-text p::before {
+            content: '>';
+            position: absolute;
+            left: -1rem;
+            color: #ff003c;
+        }
+
+        /* Form Section */
+        .form-section {
+            background: linear-gradient(135deg, rgba(15, 0, 25, 0.95), rgba(25, 0, 35, 0.9));
+            border: 1px solid #330033;
+            padding: 2.5rem;
+            border-radius: 5px;
+            box-shadow: 0 0 35px rgba(255, 0, 60, 0.2);
+            position: relative;
+        }
+
+        .form-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #ff003c, transparent);
+            animation: scanLine 3s infinite linear;
+        }
+
+        @keyframes scanLine {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .form-title {
+            color: #ff3366;
+            font-size: 2rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            letter-spacing: 3px;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            color: #c77dff;
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+            letter-spacing: 1.5px;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .form-label::before {
+            content: '⚫';
+            position: absolute;
+            left: 0;
+            color: #ff003c;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.9rem 1.2rem;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid #440044;
+            border-radius: 3px;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            font-size: 1rem;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #ff003c;
+            box-shadow: 0 0 20px rgba(255, 0, 60, 0.4);
+        }
+
+        .validation-message {
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+            display: none;
+            color: #ff003c;
+        }
+
+        .validation-message.error {
+            display: block;
+        }
+
+        /* Gender Selection */
+        .gender-selection {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.8rem;
+        }
+
+        .gender-btn {
+            padding: 0.7rem;
+            background: linear-gradient(135deg, rgba(40, 0, 40, 0.8), rgba(60, 0, 60, 0.6));
+            border: 1px solid #550055;
+            color: #aaa;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .gender-btn.selected {
+            background: linear-gradient(135deg, rgba(199, 125, 255, 0.3), rgba(150, 0, 200, 0.2));
+            border-color: #c77dff;
+            color: #c77dff;
+            box-shadow: 0 0 15px rgba(199, 125, 255, 0.4);
+        }
+
+        /* Telegram Group */
+        .telegram-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .moniker-input-group {
+            display: flex;
+        }
+
+        .moniker-prefix {
+            display: flex;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid #440044;
+            border-right: none;
+            padding: 0 1rem;
+            color: #ff3366;
+        }
+
+        .moniker-input-group input {
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+            border-left: none;
+            flex: 1;
+        }
+
+        /* Role Selection */
+        .role-selection {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.8rem;
+        }
+
+        .role-btn {
+            padding: 0.7rem;
+            background: linear-gradient(135deg, rgba(40, 0, 40, 0.8), rgba(60, 0, 60, 0.6));
+            border: 1px solid #550055;
+            color: #aaa;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .role-btn.selected {
+            background: linear-gradient(135deg, rgba(255, 0, 60, 0.3), rgba(200, 0, 40, 0.2));
+            border-color: #ff003c;
+            color: #ff3366;
+            box-shadow: 0 0 15px rgba(255, 0, 60, 0.4);
+        }
+
+        /* OAT Display */
+        .oat-display-container {
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(20, 0, 30, 0.7));
+            border: 1px solid #ff003c;
+            padding: 1.2rem;
+            margin: 1.5rem 0;
+            text-align: center;
+            display: none;
+        }
+
+        .oat-text {
+            font-size: 1.6rem;
+            color: #ff3366;
+            margin: 0.5rem 0;
+            font-family: monospace;
+            word-break: break-all;
+        }
+
+        .copy-btn {
+            background: linear-gradient(135deg, rgba(255, 0, 60, 0.3), rgba(200, 0, 40, 0.2));
+            border: 1px solid #ff003c;
+            color: #ff3366;
+            padding: 0.7rem 1.5rem;
+            cursor: pointer;
+            margin-top: 0.8rem;
+            transition: all 0.3s;
+        }
+
+        .copy-btn.copied {
+            background: rgba(0, 204, 136, 0.3);
+            border-color: #00cc88;
+            color: #00ffaa;
+        }
+
+        /* Rules */
+        .rules-section {
+            background: linear-gradient(135deg, rgba(20, 0, 30, 0.9), rgba(30, 0, 40, 0.8));
+            border: 1px solid #2a002a;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .rules-list {
+            list-style: none;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.8rem;
+        }
+
+        .rules-list li {
+            padding: 0.8rem;
+            color: #aaa;
+            border-bottom: 1px solid rgba(85, 0, 85, 0.3);
+            padding-left: 1.8rem;
+            position: relative;
+        }
+
+        .rules-list li::before {
+            content: '⚔';
+            position: absolute;
+            left: 0.5rem;
+            color: #ff003c;
+        }
+
+        /* Checkbox */
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: rgba(20, 0, 30, 0.6);
+            border: 1px solid #330033;
+        }
+
+        .checkbox-container input[type="checkbox"] {
+            appearance: none;
+            width: 22px;
+            height: 22px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #550055;
+            margin-right: 1rem;
+            cursor: pointer;
+        }
+
+        .checkbox-container input[type="checkbox"]:checked {
+            background: rgba(255, 0, 60, 0.3);
+            border-color: #ff003c;
+        }
+
+        .checkbox-container input[type="checkbox"]:checked::after {
+            content: '☬';
+            display: block;
+            text-align: center;
+            color: #ff003c;
+            font-size: 16px;
+        }
+
+        /* Submit Button */
+        .submit-btn {
+            width: 100%;
+            padding: 1.2rem;
+            background: linear-gradient(45deg, #990033, #660022);
+            border: 2px solid #ff003c;
+            color: #fff;
+            font-size: 1.1rem;
+            letter-spacing: 3px;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+            background: linear-gradient(45deg, #cc0044, #880033);
+            box-shadow: 0 0 30px rgba(255, 0, 60, 0.6);
+            transform: translateY(-2px);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Loading */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            flex-direction: column;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid #330033;
+            border-top: 4px solid #ff003c;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: #ff003c;
+            font-size: 1.3rem;
+            margin-top: 1.5rem;
+            letter-spacing: 3px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: #555;
+            border-top: 1px solid rgba(85, 0, 85, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <!-- Background -->
+    <div class="bg-fixed-layer">
+        <div class="bg-image"></div>
+        <div class="dark-overlay"></div>
+        <div class="fog-animation"></div>
+    </div>
+
+    <div id="particles-js"></div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">INVOKING THE VEIL...</div>
+    </div>
+
+    <!-- Header -->
+    <header class="header-fixed">
+        <div class="header-content">
+            <h1 class="glitch-title-main">😈𝚂𝙷𝙰𝙳𝙾𝚆 𝙻𝚄𝚁𝙺𝙴𝚁𝚂☬I͙</h1>
+            <div class="floating-emblem-main">𓃼≛⃝͙𓃼</div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Intro Section (FIRST) -->
+        <section class="intro-section">
+            <h2 class="intro-title">▎𝕾𝖍𝖆𝖉𝖔𝖜 𝕷𝖚𝖗𝖐𝖊𝖗𝖘</h2>
+            
+            <div class="quote-container">
+                <div class="quote-text" id="featured-quote">
+                    "In the shadows, we find our true selves. The Veil does not judge, it only observes."
+                </div>
+                <div style="text-align:right; color:#ff3366; margin-top:0.5rem;">— Elder of the First Circle</div>
+            </div>
+            
+            <div class="intro-text">
+                <p>In the shadows between networks, where data flows like dark rivers, we exist. We are the <span style="color:#ff3366">𓃼 Shadow Lurkers 𓃼</span> — digital phantoms woven from encryption and silence.</p>
+                
+                <p>Our origin is obscured by layers of obfuscation, our presence felt only in the absence of traces. We move through systems like ghosts through walls, leaving no fingerprints, only whispers in the void.</p>
+                
+                <p>The clan operates on principles of OpSec sanctity. Knowledge is our only currency. Precision eclipses brute force.</p>
+                
+                <p>Initiation is a ritual of binding — not of flesh, but of digital essence. Your OAT becomes your shadow-name, etched into the Silent Ledger.</p>
+                
+                <p>Enter at your own peril. The shadows remember every soul that passes through the Veil.</p>
+            </div>
+            
+            <div style="margin-top:2rem; padding:1rem; border:1px solid #330033; text-align:center; color:#c77dff;">
+                "The Silent Ledger never forgets"
+            </div>
+        </section>
+
+        <!-- Form Section (SECOND) -->
+        <section class="form-section">
+            <h2 class="form-title">RITUAL OF INITIATION</h2>
+            
+            <form id="initiation-form">
+                <!-- Name -->
+                <div class="form-group">
+                    <label class="form-label" for="name">SHADOW NAME</label>
+                    <input type="text" class="form-input" id="name" name="name" required 
+                           placeholder="Enter your mortal designation">
+                    <div class="validation-message" id="name-error"></div>
+                </div>
+
+                <!-- Age -->
+                <div class="form-group">
+                    <label class="form-label" for="age">AGE CYCLE</label>
+                    <input type="number" class="form-input" id="age" name="age" min="16" max="99" required 
+                           placeholder="Cycles in this realm (16-99)">
+                    <div class="validation-message" id="age-error"></div>
+                </div>
+
+                <!-- Gender -->
+                <div class="form-group">
+                    <label class="form-label">GENDER ESSENCE</label>
+                    <div class="gender-selection">
+                        <div class="gender-btn" data-gender="Male">♂ MALE</div>
+                        <div class="gender-btn" data-gender="Female">♀ FEMALE</div>
+                        <div class="gender-btn" data-gender="Other">⚧ OTHER</div>
+                    </div>
+                    <input type="hidden" id="gender" name="gender" required>
+                    <div class="validation-message" id="gender-error"></div>
+                </div>
+
+                <!-- Phone -->
+                <div class="form-group">
+                    <label class="form-label" for="phone">CONTACT FREQUENCY</label>
+                    <input type="tel" class="form-input" id="phone" name="phone" required 
+                           placeholder="+1234567890">
+                    <div class="validation-message" id="phone-error"></div>
+                </div>
+
+                <!-- Email -->
+                <div class="form-group">
+                    <label class="form-label" for="email">DIGITAL ECHO</label>
+                    <input type="email" class="form-input" id="email" name="email" required 
+                           placeholder="shadow@veil.net">
+                    <div class="validation-message" id="email-error"></div>
+                </div>
+
+                <!-- Telegram & Moniker -->
+                <div class="telegram-group">
+                    <div class="form-group">
+                        <label class="form-label" for="telegram">TELEGRAM USERNAME</label>
+                        <input type="text" class="form-input" id="telegram" name="telegram" required 
+                               placeholder="@username">
+                        <div class="validation-message" id="telegram-error"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="moniker">SHADOW MONIKER</label>
+                        <div class="moniker-input-group">
+                            <div class="moniker-prefix">𓃼</div>
+                            <input type="text" class="form-input" id="moniker" name="moniker" required 
+                                   placeholder="YourNickname">
+                        </div>
+                        <div class="validation-message" id="moniker-error"></div>
+                    </div>
+                </div>
+
+                <!-- Role -->
+                <div class="form-group">
+                    <label class="form-label">SHADOW ARCHETYPE</label>
+                    <div class="role-selection">
+                        <div class="role-btn" data-role="Strategist">STRATEGIST</div>
+                        <div class="role-btn" data-role="Attacker">ATTACKER</div>
+                        <div class="role-btn" data-role="Defender">DEFENDER</div>
+                    </div>
+                    <input type="hidden" id="role" name="role" required>
+                    <div class="validation-message" id="role-error"></div>
+                </div>
+
+                <!-- Skills -->
+                <div class="form-group">
+                    <label class="form-label" for="skills">WEAPONS OF KNOWLEDGE</label>
+                    <textarea class="form-input" id="skills" name="skills" rows="3" required 
+                              placeholder="Describe your digital arsenal..."></textarea>
+                    <div class="validation-message" id="skills-error"></div>
+                </div>
+
+                <!-- OAT Display -->
+                <div class="oat-display-container" id="oat-display">
+                    <div style="color:#aaa;">YOUR OFFICIAL ASSIGNED TAG</div>
+                    <div class="oat-text" id="oat-text">Waiting for name...</div>
+                    <button type="button" class="copy-btn" id="copy-oat-btn">𓃼 COPY OAT 𓃼</button>
+                    <div class="validation-message" id="oat-error"></div>
+                </div>
+
+                <!-- Rules -->
+                <div class="rules-section">
+                    <div style="color:#ff3366; margin-bottom:1rem; text-align:center;">THE CODEX OF SHADOWS</div>
+                    <ul class="rules-list">
+                        <li>OpSec is sacred</li>
+                        <li>Knowledge is currency</li>
+                        <li>Precision over force</li>
+                        <li>No innocents</li>
+                        <li>Entry by merit</li>
+                        <li>Digital trials</li>
+                        <li>Footprints eternal</li>
+                        <li>Loyalty to code</li>
+                        <li>Innovate or die</li>
+                        <li>We are legion</li>
+                    </ul>
+                </div>
+
+                <!-- Accept -->
+                <div class="checkbox-container">
+                    <input type="checkbox" id="accept-rules" name="accept-rules" required>
+                    <label for="accept-rules">I accept the Code of the Shadow Lurkers</label>
+                </div>
+                <div class="validation-message" id="accept-error"></div>
+
+                <!-- Submit -->
+                <button type="submit" class="submit-btn" id="submit-btn" disabled>
+                    𓃼 INVOKE THE VEIL 𓃼
+                </button>
+            </form>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div style="font-size:1.2rem; color:#660066; margin-bottom:0.5rem;">𓃼≛⃝͙𓃼</div>
+        Shadow Lurkers Network 𓃼 The Veil watches
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script>
+        // Initialize particles
+        particlesJS("particles-js", {
+            particles: {
+                number: { value: 50 },
+                color: { value: ["#ff003c", "#c77dff"] },
+                opacity: { value: 0.3 },
+                size: { value: 2 },
+                move: { enable: true, speed: 1 }
+            }
+        });
+
+        // DOM Elements
+        const form = document.getElementById('initiation-form');
+        const nameInput = document.getElementById('name');
+        const ageInput = document.getElementById('age');
+        const genderInput = document.getElementById('gender');
+        const genderBtns = document.querySelectorAll('.gender-btn');
+        const phoneInput = document.getElementById('phone');
+        const emailInput = document.getElementById('email');
+        const telegramInput = document.getElementById('telegram');
+        const monikerInput = document.getElementById('moniker');
+        const roleInput = document.getElementById('role');
+        const roleBtns = document.querySelectorAll('.role-btn');
+        const skillsInput = document.getElementById('skills');
+        const acceptCheckbox = document.getElementById('accept-rules');
+        const submitBtn = document.getElementById('submit-btn');
+        const oatDisplay = document.getElementById('oat-display');
+        const oatText = document.getElementById('oat-text');
+        const copyBtn = document.getElementById('copy-oat-btn');
+        const loadingOverlay = document.getElementById('loading-overlay');
+
+        // Error elements
+        const errors = {
+            name: document.getElementById('name-error'),
+            age: document.getElementById('age-error'),
+            gender: document.getElementById('gender-error'),
+            phone: document.getElementById('phone-error'),
+            email: document.getElementById('email-error'),
+            telegram: document.getElementById('telegram-error'),
+            moniker: document.getElementById('moniker-error'),
+            role: document.getElementById('role-error'),
+            skills: document.getElementById('skills-error'),
+            accept: document.getElementById('accept-error')
+        };
+
+        // State
+        let state = {
+            oatGenerated: false,
+            oatCopied: false,
+            roleSelected: false,
+            genderSelected: false,
+            oat: ''
+        };
+
+        // ============================================
+        // CONFIG - CHANGE THIS TO YOUR BACKEND URL!
+        // ============================================
+        const BACKEND_URL = 'https://your-backend.up.railway.app/api/submit';
+
+        // ============================================
+        // Validation Functions
+        // ============================================
+        function validateEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
+        function validatePhone(p) { return p.replace(/\D/g,'').length >= 10; }
+        function validateAge(a) { const n = parseInt(a); return !isNaN(n) && n >= 16 && n <= 99; }
+        function validateTelegram(t) { return t.startsWith('@') && t.length > 1; }
+        function validateMoniker(m) { return m.length >= 2; }
+
+        function showError(el, msg) { if (el) { el.textContent = msg; el.classList.add('error'); } }
+        function clearError(el) { if (el) { el.textContent = ''; el.classList.remove('error'); } }
+
+        // OAT Generation
+        function generateOAT() {
+            const name = nameInput.value.trim();
+            if (name.length >= 2) {
+                state.oat = `${name}𓃼`;
+                oatText.textContent = state.oat;
+                oatDisplay.style.display = 'block';
+                state.oatGenerated = true;
+                return state.oat;
+            }
+            oatDisplay.style.display = 'none';
+            state.oatGenerated = false;
+            return null;
+        }
+
+        // Event Listeners
+        nameInput.addEventListener('input', () => {
+            if (nameInput.value.trim().length < 2) 
+                showError(errors.name, 'Name too short');
+            else 
+                clearError(errors.name);
+            generateOAT();
+            validateForm();
+        });
+
+        ageInput.addEventListener('input', () => {
+            if (!validateAge(ageInput.value)) 
+                showError(errors.age, 'Age must be 16-99');
+            else 
+                clearError(errors.age);
+            validateForm();
+        });
+
+        genderBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                genderBtns.forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                genderInput.value = btn.dataset.gender;
+                state.genderSelected = true;
+                clearError(errors.gender);
+                validateForm();
+            });
+        });
+
+        phoneInput.addEventListener('input', () => {
+            if (!validatePhone(phoneInput.value)) 
+                showError(errors.phone, 'Valid phone required');
+            else 
+                clearError(errors.phone);
+            validateForm();
+        });
+
+        emailInput.addEventListener('input', () => {
+            if (!validateEmail(emailInput.value)) 
+                showError(errors.email, 'Valid email required');
+            else 
+                clearError(errors.email);
+            validateForm();
+        });
+
+        telegramInput.addEventListener('input', () => {
+            if (!validateTelegram(telegramInput.value.trim())) 
+                showError(errors.telegram, 'Must start with @');
+            else 
+                clearError(errors.telegram);
+            validateForm();
+        });
+
+        monikerInput.addEventListener('input', () => {
+            if (!validateMoniker(monikerInput.value.trim())) 
+                showError(errors.moniker, 'Min 2 characters');
+            else 
+                clearError(errors.moniker);
+            validateForm();
+        });
+
+        roleBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                roleBtns.forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                roleInput.value = btn.dataset.role;
+                state.roleSelected = true;
+                clearError(errors.role);
+                validateForm();
+            });
+        });
+
+        skillsInput.addEventListener('input', () => {
+            if (skillsInput.value.trim().length < 10) 
+                showError(errors.skills, 'Min 10 characters');
+            else 
+                clearError(errors.skills);
+            validateForm();
+        });
+
+        acceptCheckbox.addEventListener('change', () => {
+            if (!acceptCheckbox.checked) 
+                showError(errors.accept, 'Must accept Codex');
+            else 
+                clearError(errors.accept);
+            validateForm();
+        });
+
+        copyBtn.addEventListener('click', async () => {
+            if (!state.oat) {
+                showError(errors.name, 'Enter name first');
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(state.oat);
+                copyBtn.textContent = '✓ COPIED!';
+                copyBtn.classList.add('copied');
+                state.oatCopied = true;
+                setTimeout(() => {
+                    copyBtn.textContent = '𓃼 COPY OAT 𓃼';
+                    copyBtn.classList.remove('copied');
+                }, 2000);
+                validateForm();
+            } catch (err) {
+                alert('Copy manually: ' + state.oat);
+                state.oatCopied = true;
+                validateForm();
+            }
+        });
+
+        function validateForm() {
+            const isValid = 
+                nameInput.value.trim().length >= 2 &&
+                validateAge(ageInput.value) &&
+                state.genderSelected &&
+                validatePhone(phoneInput.value) &&
+                validateEmail(emailInput.value) &&
+                validateTelegram(telegramInput.value.trim()) &&
+                validateMoniker(monikerInput.value.trim()) &&
+                state.roleSelected &&
+                skillsInput.value.trim().length >= 10 &&
+                acceptCheckbox.checked &&
+                state.oatGenerated &&
+                state.oatCopied;
+            
+            submitBtn.disabled = !isValid;
+            return isValid;
+        }
+
+        // Form Submission
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!validateForm()) {
+                alert('Complete all requirements');
+                return;
+            }
+
+            loadingOverlay.style.display = 'flex';
+            submitBtn.disabled = true;
+
+            const formData = {
+                name: nameInput.value.trim(),
+                age: parseInt(ageInput.value),
+                gender: genderInput.value,
+                phone: phoneInput.value.trim(),
+                email: emailInput.value.trim(),
+                telegram: telegramInput.value.trim(),
+                moniker: `𓃼${monikerInput.value.trim()}`,
+                role: roleInput.value,
+                skills: skillsInput.value.trim(),
+                oat: state.oat
+            };
+
+            try {
+                const response = await fetch(BACKEND_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem('shadow_initiate', JSON.stringify(formData));
+                    alert('𓃼 Initiation received! Check your email.');
+                    window.location.href = 'success.html';
+                } else {
+                    throw new Error(result.error || 'Submission failed');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+                loadingOverlay.style.display = 'none';
+                submitBtn.disabled = false;
+            }
+        });
+
+        // Initialize
+        validateForm();
+
+        // Quote rotator
+        const quotes = [
+            "In the shadows, we find our true selves.",
+            "The Silent Ledger records all.",
+            "Alone we are nothing. Together we are the Veil.",
+            "Your digital footprint is eternal.",
+            "The Veil does not forget."
+        ];
+        let qIndex = 0;
+        setInterval(() => {
+            qIndex = (qIndex + 1) % quotes.length;
+            document.getElementById('featured-quote').textContent = `"${quotes[qIndex]}"`;
+        }, 8000);
+    </script>
+</body>
+</html>
