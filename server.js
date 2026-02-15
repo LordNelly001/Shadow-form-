@@ -112,17 +112,23 @@ IX. Innovate or stagnate
 X. We are a legion`);
 });
 
-// /quote
+// /quote command - FIXED
 bot.command('quote', (ctx) => {
   const quotes = [
     "In the shadows, we find our true selves.",
-    "The Silent Ledger records all.",
+    "The Silent Ledger records all. Every keystroke. Every whisper.",
     "Alone we are nothing. Together we are the Veil.",
-    "Your digital footprint is eternal."
+    "Your digital footprint is eternal. Choose wisely.",
+    "The Veil does not forget. It does not forgive.",
+    "Knowledge is the only currency in the digital underworld.",
+    "Precision eclipses brute force.",
+    "Your OAT is your curse and your blessing."
   ];
-  ctx.reply(`"${quotes[Math.floor(Math.random() * quotes.length]}"`);
+  // FIXED: Added missing bracket after quotes.length
+  const randomIndex = Math.floor(Math.random() * quotes.length);
+  const quote = quotes[randomIndex];
+  ctx.reply(`"${quote}"`);
 });
-
 // /initiate
 bot.command('initiate', (ctx) => {
   ctx.replyWithMarkdown(`
