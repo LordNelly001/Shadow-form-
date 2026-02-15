@@ -1,4 +1,4 @@
-// server.js - SHADOW LURKERS BOT - 100% BUG FREE
+// server.js - SHADOW LURKERS BOT - COMPLETE WITH ALL FUNCTIONS
 require('dotenv').config();
 
 const express = require('express');
@@ -22,7 +22,7 @@ const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const OWNER_ID = process.env.TELEGRAM_OWNER_ID;
 const EMAIL_USER = process.env.EMAIL_USER || 'shadowlurkers229@gmail.com';
 const EMAIL_PASS = process.env.EMAIL_PASS || 'vbjrnxynwwpcxbxe';
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5500';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://shadowlurkers-form.vercel.app';
 
 // Validate required variables
 if (!BOT_TOKEN) {
@@ -43,15 +43,39 @@ console.log(`🌐 Frontend URL: ${FRONTEND_URL}`);
 // ============================================
 // MIDDLEWARE
 // ============================================
-app.use(cors());
+app.use(cors({
+  origin: [FRONTEND_URL, 'https://shadowlurkers-form.vercel.app', 'http://localhost:5500'],
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
+
+// ============================================
+// ROOT ROUTE
+// ============================================
+app.get('/', (req, res) => {
+  res.json({
+    name: '𓃼 Shadow Lurkers Backend 𓃼',
+    status: '🟢 ONLINE',
+    message: 'The Veil is active and watching',
+    endpoints: {
+      health: '/health',
+      submit: '/api/submit',
+      initiates: '/api/initiates',
+      webhook: '/webhook'
+    },
+    frontend: FRONTEND_URL,
+    timestamp: new Date().toISOString()
+  });
+});
 
 // Health check
 app.get('/health', (req, res) => {
   res.status(200).json({ 
     status: 'ok',
+    bot: !!BOT_TOKEN,
+    owner: !!OWNER_ID,
     timestamp: new Date().toISOString()
   });
 });
@@ -76,6 +100,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
 
 function initDatabase() {
   db.serialize(() => {
+    // Initiates table
     db.run(`CREATE TABLE IF NOT EXISTS initiates (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
@@ -94,6 +119,7 @@ function initDatabase() {
       reviewed_by TEXT
     )`);
 
+    // Admins table
     db.run(`CREATE TABLE IF NOT EXISTS admins (
       user_id TEXT PRIMARY KEY,
       username TEXT,
@@ -101,6 +127,7 @@ function initDatabase() {
       added_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 
+    // Add owner as admin
     if (OWNER_ID) {
       db.run(`INSERT OR IGNORE INTO admins (user_id, username, role) VALUES (?, ?, ?)`,
              [OWNER_ID, 'owner', 'veil_keeper']);
@@ -141,10 +168,10 @@ bot.catch((err, ctx) => {
 });
 
 // ============================================
-// BOT COMMANDS
+// ===== BOT COMMANDS - ALL FUNCTIONS =====
 // ============================================
 
-// /start command
+// /start command - WELCOME MESSAGE
 bot.start((ctx) => {
   const isOwner = ctx.from.id.toString() === OWNER_ID;
   const welcomeMessage = `
@@ -171,44 +198,65 @@ ${isOwner ? '\n/review    - View pending initiates\n/approve   - Accept a soul\n
   ctx.reply(welcomeMessage);
 });
 
-// /codex command
+// /codex command - SHOW RULES
 bot.command('codex', (ctx) => {
   ctx.reply(`
 𓃼 THE CODEX OF SHADOWS 𓃼
 
 I.  OpSec is sacred
-II.  Knowledge is currency
-III. Precision over brute force
-IV.  No innocents
-V.   Entry by merit only
-VI.  Disputes via digital trials
-VII. Footprints are eternal
-VIII.Loyalty to the code
-IX.  Innovate or stagnate
-X.   We are a legion
+    "What the shadows hide, the light cannot find."
 
+II. Knowledge is currency
+    "Information flows like blood through the Veil."
+
+III. Precision over brute force
+    "A single keystroke can topple empires."
+
+IV. No innocents
+    "All are potential vectors. All are suspects."
+
+V.  Entry by merit only
+    "The Veil does not open for the unworthy."
+
+VI. Disputes via digital trials
+    "Code shall judge code. Logic shall prevail."
+
+VII. Footprints are eternal
+    "Every action echoes in the Silent Ledger."
+
+VIII. Loyalty to the code
+    "The shadows demand absolute devotion."
+
+IX. Innovate or stagnate
+    "Evolution is survival in the digital dark."
+
+X.  We are a legion
+    "Alone we are shadows. Together we are the Veil."
+
+══════════════════════════════════════════════
 "Violation of any tenet invites judgment."
   `);
 });
 
-// /quote command - FIXED
+// /quote command - RANDOM SHADOW WISDOM
 bot.command('quote', (ctx) => {
   const quotes = [
-    "In the shadows, we find our true selves.",
-    "The Silent Ledger records all. Every keystroke. Every whisper.",
-    "Alone we are nothing. Together we are the Veil.",
-    "Your digital footprint is eternal. Choose wisely.",
-    "The Veil does not forget. It does not forgive.",
-    "Knowledge is the only currency in the digital underworld.",
-    "Precision eclipses brute force.",
-    "Your OAT is your curse and your blessing."
+    { text: "In the shadows, we find our true selves.", author: "Elder of the First Circle" },
+    { text: "The Silent Ledger records all. Every keystroke. Every whisper.", author: "Keeper of the Ledger" },
+    { text: "Alone we are nothing. Together we are the Veil.", author: "Clan Proverb" },
+    { text: "Your digital footprint is eternal. Choose wisely.", author: "First Tenet" },
+    { text: "The Veil does not forget. It does not forgive.", author: "Defender's Oath" },
+    { text: "Knowledge is the only currency in the digital underworld.", author: "Strategist Prime" },
+    { text: "Precision eclipses brute force.", author: "Attacker's Mantra" },
+    { text: "Your OAT is your curse and your blessing.", author: "Ancient Codex" }
   ];
+  
   const randomIndex = Math.floor(Math.random() * quotes.length);
   const quote = quotes[randomIndex];
-  ctx.reply(`"${quote}"`);
+  ctx.reply(`"${quote.text}"\n— ${quote.author}`);
 });
 
-// /initiate command
+// /initiate command - START JOURNEY
 bot.command('initiate', (ctx) => {
   ctx.replyWithMarkdown(`
 ☬ *INITIATION PROTOCOL ACTIVATED* ☬
@@ -243,7 +291,7 @@ If found worthy, you shall be welcomed into the Veil.
   });
 });
 
-// /mystatus command
+// /mystatus command - CHECK PERSONAL STATUS
 bot.command('mystatus', (ctx) => {
   const username = ctx.from.username ? `@${ctx.from.username}` : '';
   const firstName = ctx.from.first_name || '';
@@ -256,6 +304,7 @@ bot.command('mystatus', (ctx) => {
     }
     
     if (row) {
+      const statusEmoji = row.status === 'approved' ? '✅' : row.status === 'rejected' ? '❌' : '⏳';
       ctx.reply(`
 ╔══════════════════════════════════════════════╗
         𓃼 YOUR SHADOW PROFILE 𓃼
@@ -265,7 +314,7 @@ bot.command('mystatus', (ctx) => {
 🏷️ Moniker: ${row.moniker}
 ⚔️ Role: ${row.role}
 𓃼 OAT: ${row.oat}
-📜 Status: ${row.status.toUpperCase()}
+📜 Status: ${statusEmoji} ${row.status.toUpperCase()}
 📅 Initiated: ${new Date(row.created_at).toLocaleDateString()}
 
 ${row.status === 'approved' ? '☬ You are a shadow of the Veil ☬' : 
@@ -278,7 +327,7 @@ ${row.status === 'approved' ? '☬ You are a shadow of the Veil ☬' :
   });
 });
 
-// /review command - WITH BUTTONS
+// /review command - SHOW PENDING INITIATES WITH BUTTONS (OWNER ONLY)
 bot.command('review', (ctx) => {
   if (ctx.from.id.toString() !== OWNER_ID) {
     return ctx.reply('☠ Only the Veil Keeper can use this command.');
@@ -322,7 +371,7 @@ bot.command('review', (ctx) => {
   });
 });
 
-// Handle approve/reject callbacks - WITH EMAIL
+// HANDLE APPROVE/REJECT BUTTONS - WITH EMAIL NOTIFICATIONS
 bot.on('callback_query', async (ctx) => {
   if (ctx.from.id.toString() !== OWNER_ID) {
     return ctx.answerCbQuery('☠ Only Elders can judge souls.');
@@ -337,37 +386,92 @@ bot.on('callback_query', async (ctx) => {
     }
     
     const newStatus = action === 'approve' ? 'approved' : 'rejected';
+    const statusEmoji = action === 'approve' ? '☬' : '☠';
     
     db.run(`UPDATE initiates SET status = ?, reviewed_at = ?, reviewed_by = ? WHERE id = ?`,
            [newStatus, new Date().toISOString(), ctx.from.username || 'Elder', id]);
     
-    // Send email notification
+    // ===== SEND EMAIL NOTIFICATION =====
     try {
+      const emailSubject = action === 'approve' 
+        ? '☬ Shadow Lurkers - Initiation APPROVED ☬' 
+        : '☠ Shadow Lurkers - Initiation REJECTED ☠';
+      
+      const emailHtml = action === 'approve' ? `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { background: #000; color: #fff; font-family: 'Courier New', monospace; padding: 20px; }
+            .container { max-width: 600px; margin: auto; border: 2px solid #ff003c; padding: 30px; background: #0a0015; }
+            h1 { color: #ff003c; text-align: center; font-size: 32px; text-shadow: 0 0 10px #ff003c; }
+            .oat { color: #ff3366; font-size: 28px; text-align: center; margin: 30px; padding: 15px; border: 1px solid #ff003c; background: #000; }
+            .moniker { color: #c77dff; font-size: 20px; text-align: center; }
+            .message { color: #fff; line-height: 1.6; text-align: center; }
+            .footer { color: #666; font-size: 12px; text-align: center; margin-top: 30px; border-top: 1px solid #330033; padding-top: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>☬ INITIATION APPROVED ☬</h1>
+            <p class="message">The Elders have reviewed your application.</p>
+            <p class="message">You have been deemed <strong style="color:#00ff88">WORTHY</strong> of the Veil.</p>
+            
+            <div class="oat">${row.oat}</div>
+            <div class="moniker">${row.moniker}</div>
+            
+            <p class="message">You are now a shadow of the Veil.<br>Your name is forever etched in the Silent Ledger.</p>
+            
+            <p class="message">Visit the Shadow Portal to begin your journey:<br>${FRONTEND_URL}</p>
+            
+            <div class="footer">
+              𓃼 THE SILENT LEDGER NEVER FORGETS 𓃼<br>
+              This message was sent automatically by the Veil.
+            </div>
+          </div>
+        </body>
+        </html>
+      ` : `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { background: #000; color: #fff; font-family: 'Courier New', monospace; padding: 20px; }
+            .container { max-width: 600px; margin: auto; border: 2px solid #ff003c; padding: 30px; background: #0a0015; }
+            h1 { color: #ff003c; text-align: center; font-size: 32px; text-shadow: 0 0 10px #ff003c; }
+            .oat { color: #ff3366; font-size: 28px; text-align: center; margin: 30px; padding: 15px; border: 1px solid #ff003c; background: #000; }
+            .moniker { color: #c77dff; font-size: 20px; text-align: center; }
+            .message { color: #fff; line-height: 1.6; text-align: center; }
+            .footer { color: #666; font-size: 12px; text-align: center; margin-top: 30px; border-top: 1px solid #330033; padding-top: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>☠ INITIATION REJECTED ☠</h1>
+            <p class="message">The Elders have reviewed your application.</p>
+            <p class="message">You have been deemed <strong style="color:#ff003c">UNWORTHY</strong> of the Veil.</p>
+            
+            <div class="oat">${row.oat}</div>
+            <div class="moniker">${row.moniker}</div>
+            
+            <p class="message">Your name has been removed from consideration.<br>The Silent Ledger does not forget.</p>
+            
+            <p class="message">You may reapply after reflecting on the Codex.</p>
+            
+            <div class="footer">
+              𓃼 THE SILENT LEDGER NEVER FORGETS 𓃼<br>
+              This message was sent automatically by the Veil.
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+      
       const mailOptions = {
         from: `"Shadow Lurkers" <${EMAIL_USER}>`,
         to: row.email,
-        subject: `Shadow Lurkers - Initiation ${newStatus.toUpperCase()}`,
-        html: `
-<!DOCTYPE html>
-<html>
-<head>
-  <style>
-    body { background: #000; color: #fff; font-family: monospace; padding: 20px; }
-    .container { max-width: 600px; margin: auto; border: 2px solid #ff003c; padding: 30px; }
-    h1 { color: #ff003c; text-align: center; }
-    .oat { color: #ff3366; font-size: 24px; text-align: center; margin: 20px; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>${action === 'approve' ? '☬ APPROVED ☬' : '☠ REJECTED ☠'}</h1>
-    <p>Your initiation has been <strong>${newStatus}</strong>.</p>
-    <div class="oat">${row.oat}</div>
-    <p>Moniker: ${row.moniker}</p>
-  </div>
-</body>
-</html>
-        `
+        subject: emailSubject,
+        html: emailHtml
       };
       
       await emailTransporter.sendMail(mailOptions);
@@ -377,13 +481,13 @@ bot.on('callback_query', async (ctx) => {
     }
     
     await ctx.editMessageText(
-      `Initiate #${id} (${row.name}) has been ${newStatus}.`
+      `${statusEmoji} Initiate #${id} (${row.name}) has been ${newStatus}. ${statusEmoji}`
     );
     await ctx.answerCbQuery(`✅ ${newStatus}`);
   });
 });
 
-// /approve command
+// /approve command - APPROVE BY ID
 bot.command('approve', (ctx) => {
   if (ctx.from.id.toString() !== OWNER_ID) {
     return ctx.reply('☠ Only the Veil Keeper can use this command.');
@@ -403,7 +507,7 @@ bot.command('approve', (ctx) => {
       from: `"Shadow Lurkers" <${EMAIL_USER}>`,
       to: row.email,
       subject: '☬ Shadow Lurkers - Initiation APPROVED',
-      html: `<h1>Approved!</h1><p>Your OAT: ${row.oat}</p>`
+      html: `<h1>Approved!</h1><p>Your OAT: ${row.oat}</p><p>Moniker: ${row.moniker}</p>`
     };
     emailTransporter.sendMail(mailOptions).catch(console.error);
     
@@ -411,7 +515,7 @@ bot.command('approve', (ctx) => {
   });
 });
 
-// /reject command
+// /reject command - REJECT BY ID
 bot.command('reject', (ctx) => {
   if (ctx.from.id.toString() !== OWNER_ID) {
     return ctx.reply('☠ Only the Veil Keeper can use this command.');
@@ -431,7 +535,7 @@ bot.command('reject', (ctx) => {
       from: `"Shadow Lurkers" <${EMAIL_USER}>`,
       to: row.email,
       subject: '☠ Shadow Lurkers - Initiation REJECTED',
-      html: `<h1>Rejected</h1><p>Your OAT: ${row.oat}</p>`
+      html: `<h1>Rejected</h1><p>Your OAT: ${row.oat}</p><p>Moniker: ${row.moniker}</p>`
     };
     emailTransporter.sendMail(mailOptions).catch(console.error);
     
@@ -439,7 +543,7 @@ bot.command('reject', (ctx) => {
   });
 });
 
-// /members command
+// /members command - LIST ALL APPROVED MEMBERS
 bot.command('members', (ctx) => {
   if (ctx.from.id.toString() !== OWNER_ID) {
     return ctx.reply('☠ Only the Veil Keeper can use this command.');
@@ -462,12 +566,63 @@ bot.command('members', (ctx) => {
   });
 });
 
+// /delete command - DELETE INITIATE (OWNER ONLY)
+bot.command('delete', (ctx) => {
+  if (ctx.from.id.toString() !== OWNER_ID) {
+    return ctx.reply('☠ Only the Veil Keeper can use this command.');
+  }
+  
+  const id = ctx.message.text.split(' ')[1];
+  if (!id) return ctx.reply('Usage: /delete [initiate_id]');
+  
+  db.run(`DELETE FROM initiates WHERE id = ?`, [id], function(err) {
+    if (err) {
+      return ctx.reply('☠ Failed to delete from Silent Ledger.');
+    }
+    if (this.changes === 0) {
+      return ctx.reply('Initiate not found.');
+    }
+    ctx.reply(`☠ Initiate #${id} has been erased from the Silent Ledger.`);
+  });
+});
+
+// /stats command - SHOW STATISTICS
+bot.command('stats', (ctx) => {
+  if (ctx.from.id.toString() !== OWNER_ID) {
+    return ctx.reply('☠ Only the Veil Keeper can use this command.');
+  }
+  
+  db.get(`SELECT 
+    COUNT(*) as total,
+    SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+    SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved,
+    SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected
+    FROM initiates`, [], (err, row) => {
+    if (err) {
+      return ctx.reply('☠ Failed to query the Silent Ledger.');
+    }
+    
+    ctx.reply(`
+📊 SILENT LEDGER STATISTICS 📊
+
+Total Souls: ${row.total || 0}
+⏳ Pending: ${row.pending || 0}
+✅ Approved: ${row.approved || 0}
+❌ Rejected: ${row.rejected || 0}
+
+"The Veil watches over all."
+    `);
+  });
+});
+
 // ============================================
 // API ENDPOINTS
 // ============================================
 
 // Form submission endpoint
 app.post('/api/submit', (req, res) => {
+  console.log('📥 Received submission:', req.body);
+  
   const data = req.body;
   
   // Validate required fields
@@ -475,48 +630,73 @@ app.post('/api/submit', (req, res) => {
     return res.status(400).json({ error: 'Missing required fields' });
   }
   
-  // Insert into database
-  db.run(`INSERT INTO initiates 
-          (name, age, gender, phone, email, telegram, moniker, role, skills, oat, status)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
-          [data.name, data.age, data.gender, data.phone, data.email, 
-           data.telegram, data.moniker, data.role, data.skills, data.oat],
-    function(err) {
-      if (err) {
-        console.error('Insert error:', err);
-        return res.status(500).json({ error: 'Database error' });
-      }
-      
-      // Send confirmation email
-      const mailOptions = {
-        from: `"Shadow Lurkers" <${EMAIL_USER}>`,
-        to: data.email,
-        subject: '𓃼 Shadow Lurkers - Initiation Received',
-        html: `
-          <h1>Initiation Received</h1>
-          <p>Your application has been received by the Veil.</p>
-          <p>OAT: ${data.oat}</p>
-          <p>Moniker: ${data.moniker}</p>
-          <p>The Elders will review your submission shortly.</p>
-        `
-      };
-      
-      emailTransporter.sendMail(mailOptions).catch(console.error);
-      
-      // Notify owner
-      if (OWNER_ID) {
-        bot.telegram.sendMessage(OWNER_ID, 
-          `𓃼 New initiate #${this.lastID}: ${data.name} (${data.role})\nUse /review to view.`
-        ).catch(console.error);
-      }
-      
-      res.json({ 
-        success: true, 
-        id: this.lastID,
-        message: 'Initiation recorded in the Silent Ledger'
-      });
+  // Check if OAT already exists
+  db.get(`SELECT id FROM initiates WHERE oat = ?`, [data.oat], (err, row) => {
+    if (row) {
+      return res.status(409).json({ error: 'OAT already exists in the Silent Ledger' });
     }
-  );
+    
+    // Insert into database
+    db.run(`INSERT INTO initiates 
+            (name, age, gender, phone, email, telegram, moniker, role, skills, oat, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+            [data.name, data.age, data.gender, data.phone, data.email, 
+             data.telegram, data.moniker, data.role, data.skills, data.oat],
+      function(err) {
+        if (err) {
+          console.error('Insert error:', err);
+          return res.status(500).json({ error: 'Database error: ' + err.message });
+        }
+        
+        console.log(`✅ Initiate #${this.lastID} saved to database`);
+        
+        // Send confirmation email
+        const mailOptions = {
+          from: `"Shadow Lurkers" <${EMAIL_USER}>`,
+          to: data.email,
+          subject: '𓃼 Shadow Lurkers - Initiation Received',
+          html: `
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <style>
+                body { background: #000; color: #fff; font-family: 'Courier New', monospace; padding: 20px; }
+                .container { max-width: 600px; margin: auto; border: 2px solid #ff003c; padding: 30px; }
+                h1 { color: #ff003c; text-align: center; }
+                .oat { color: #ff3366; font-size: 24px; text-align: center; margin: 20px; }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <h1>𓃼 INITIATION RECEIVED 𓃼</h1>
+                <p>Your application has been received by the Veil.</p>
+                <div class="oat">${data.oat}</div>
+                <p>Moniker: ${data.moniker}</p>
+                <p>The Elders will review your submission shortly.</p>
+                <p style="color:#666; font-size:12px; text-align:center;">The Silent Ledger has recorded your soul.</p>
+              </div>
+            </body>
+            </html>
+          `
+        };
+        
+        emailTransporter.sendMail(mailOptions).catch(console.error);
+        
+        // Notify owner
+        if (OWNER_ID) {
+          bot.telegram.sendMessage(OWNER_ID, 
+            `𓃼 New initiate #${this.lastID}: ${data.name} (${data.role})\nUse /review to view.`
+          ).catch(console.error);
+        }
+        
+        res.json({ 
+          success: true, 
+          id: this.lastID,
+          message: 'Initiation recorded in the Silent Ledger'
+        });
+      }
+    );
+  });
 });
 
 // Get all initiates
@@ -542,6 +722,17 @@ app.get('/api/initiates/:id', (req, res) => {
   });
 });
 
+// Webhook endpoint for Telegram
+app.post('/webhook', (req, res) => {
+  try {
+    bot.handleUpdate(req.body);
+    res.status(200).send('OK');
+  } catch (err) {
+    console.error('Webhook error:', err);
+    res.status(200).send('OK');
+  }
+});
+
 // ============================================
 // START SERVER
 // ============================================
@@ -550,7 +741,8 @@ app.listen(PORT, '0.0.0.0', () => {
 ╔══════════════════════════════════════════════╗
    𓃼 SHADOW LURKERS VEIL ACTIVATED 𓃼
    Port: ${PORT}
-   URL: ${FRONTEND_URL}
+   URL: https://shadow-form-production.up.railway.app
+   Frontend: ${FRONTEND_URL}
    Bot: ✅ Active
    Owner: ✅ Configured
    Email: ✅ Ready
@@ -561,6 +753,7 @@ app.listen(PORT, '0.0.0.0', () => {
   // Start bot with long polling
   bot.launch().then(() => {
     console.log('✅ Telegram bot started with long polling');
+    console.log('📋 Commands loaded: start, codex, quote, initiate, mystatus, review, approve, reject, members, delete, stats');
   }).catch(err => {
     console.error('❌ Bot failed to start:', err);
   });
@@ -570,11 +763,13 @@ app.listen(PORT, '0.0.0.0', () => {
 process.once('SIGINT', () => {
   bot.stop('SIGINT');
   db.close();
+  console.log('🛑 Server shut down gracefully');
   process.exit(0);
 });
 
 process.once('SIGTERM', () => {
   bot.stop('SIGTERM');
   db.close();
+  console.log('🛑 Server shut down gracefully');
   process.exit(0);
 });
