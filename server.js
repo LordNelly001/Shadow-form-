@@ -3,6 +3,8 @@ require('dotenv').config();
 const express = require('express');
 const { Telegraf } = require('telegraf');
 const sqlite3 = require('sqlite3').verbose();
+// Add this near the top with other middleware
+app.use(express.static(path.join(__dirname, 'public')));
 const nodemailer = require('nodemailer');
 const cors = require('cors');
 const path = require('path');
