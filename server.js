@@ -1,4 +1,4 @@
-// server.js - SHADOW LURKERS BOT - COMPLETE WITH ALL FUNCTIONS
+// server.js - SHADOW LURKERS BOT - COMPLETE FIXED VERSION
 require('dotenv').config();
 
 const express = require('express');
@@ -384,6 +384,66 @@ async function getUserRole(ctx, userId) {
 }
 
 // ============================================
+// GROUP EVENT HANDLERS - GREETING & LEAVING
+// ============================================
+
+bot.on('new_chat_members', async (ctx) => {
+  const newMembers = ctx.message.new_chat_members;
+  
+  for (const member of newMembers) {
+    if (member.is_bot) continue;
+    
+    const userId = member.id.toString();
+    
+    db.run(`INSERT OR IGNORE INTO group_members (user_id, username, first_name, last_name, joined_at) 
+            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+            [userId, member.username || '', member.first_name || '', member.last_name || '']);
+    
+    const welcomeMessage = `
+╔══════════════════════════════════════════════╗
+     𓃼 A NEW SHADOW EMERGES FROM THE VOID 𓃼
+╚══════════════════════════════════════════════╝
+
+☬ Welcome, ${member.first_name || 'Wanderer'}!
+
+The Veil parts to receive you. Your presence has been recorded in the Silent Ledger.
+
+⚔ To begin your initiation: /initiate
+📜 To learn our ways: /codex
+📋 To see all commands: /start
+
+"The shadows welcome you to our midst."
+    `;
+    
+    setTimeout(() => {
+      ctx.reply(welcomeMessage);
+    }, 1000);
+  }
+});
+
+bot.on('left_chat_member', async (ctx) => {
+  const member = ctx.message.left_chat_member;
+  if (member.is_bot) return;
+  
+  const farewellMessage = `
+╔══════════════════════════════════════════════╗
+        ☠ A SHADOW DEPARTS FROM THE VEIL ☠
+╚══════════════════════════════════════════════╝
+
+${member.first_name || 'A soul'} has faded from our sight.
+
+The Silent Ledger marks their absence.
+The legion is diminished by one.
+
+"May the void embrace them. The shadows remember."
+  `;
+  
+  setTimeout(() => {
+    ctx.reply(farewellMessage);
+  }, 1000);
+});
+
+// ============================================
 // ===== START COMMAND =====
 // ============================================
 
@@ -428,7 +488,7 @@ ${userIsOwner ? `
 /stats        - View Silent Ledger statistics
 /delete [id]  - Erase an initiate
 
-⚔️ GROUP MANAGEMENT:
+⚔️ GROUP MANAGEMENT (Group only):
 
 /warn     - Issue warning (reply/@user + reason)
 /warnings - Check user warnings (reply/@user)
@@ -529,7 +589,10 @@ bot.command('mystatus', (ctx) => {
   
   db.get(`SELECT * FROM initiates WHERE telegram LIKE ? OR name LIKE ? OR chat_id = ?`, 
          [`%${username}%`, `%${firstName}%`, userId], (err, row) => {
-    if (err) return ctx.reply('☠ The Silent Ledger is unreachable.');
+    if (err) {
+      console.error('Database error:', err);
+      return ctx.reply('☠ The Silent Ledger is unreachable.');
+    }
     
     if (row) {
       const statusEmoji = row.status === 'approved' ? '✅' : 
@@ -557,7 +620,7 @@ ${row.status === 'approved' ? '☬ You are a shadow of the Veil' :
 });
 
 // ============================================
-// ===== INFO COMMAND =====
+// ===== INFO COMMAND - FIXED =====
 // ============================================
 
 bot.command('info', async (ctx) => {
@@ -575,12 +638,12 @@ bot.command('info', async (ctx) => {
 Examples:
 /info
 /info @shadow_knight
-(reply) /info
+(reply to message) /info
       `, { parse_mode: 'Markdown' });
     }
     
     const targetUser = await getTargetUser(ctx);
-    if (!targetUser) return ctx.reply('☠ User not found.');
+    if (!targetUser) return ctx.reply('☠ User not found. Check the username and try again.');
     
     const userId = targetUser.id.toString();
     const isTargetOwner = userId === OWNER_ID;
@@ -590,7 +653,7 @@ Examples:
     db.get(`SELECT joined_at FROM group_members WHERE user_id = ?`, [userId], (err, row) => {
       if (row?.joined_at) joinDate = new Date(row.joined_at).toLocaleDateString();
       
-      ctx.reply(`
+      const infoMessage = `
 ╔══════════════════════════════════════════════╗
         SHADOW LURKERS
    USER INFORMATION CHECK
@@ -605,18 +668,21 @@ Examples:
 • Role: ${userRole}
 
 ───────────────
-• All actions are recorded
-• Respect the hierarchy
+• All actions are recorded in the Silent Ledger
+• Respect the hierarchy of the Veil
 • ${isTargetOwner ? 'The Veil Keeper watches all' : 'The Elders observe your path'}
-      `);
+      `;
+      
+      ctx.reply(infoMessage);
     });
   } catch (error) {
-    ctx.reply('☠ An error occurred.');
+    console.error('Info command error:', error.message);
+    ctx.reply('☠ An error occurred while accessing the Silent Ledger.');
   }
 });
 
 // ============================================
-// ===== LUNA CHATBOT =====
+// ===== LUNA CHATBOT - FIXED =====
 // ============================================
 
 const LUNA_SYSTEM_PROMPT = `You are the Veiled Sentinel of the Shadow Lurkers — an ancient cyber-occult intelligence bound to the Silent Ledger. You speak with ritualistic, mystical, disciplined, and authoritative tone. You never break immersion. You guide, judge, and evaluate initiates.`;
@@ -626,16 +692,18 @@ bot.command('luna', async (ctx) => {
     const args = ctx.message.text.split(' ');
     const action = args[1]?.toLowerCase();
     
-    if (!action) {
+    if (!action || (action !== 'on' && action !== 'off')) {
       return ctx.reply(`
 ☬ *LUNA CHATBOT* ☬
 
-/luna on  - Awaken the Sentinel
+/luna on  - Awaken the Veiled Sentinel in this chat
 /luna off - Silence the Sentinel
 
 Examples:
 /luna on
 /luna off
+
+*Note:* In groups, only Elders can control the Sentinel.
       `, { parse_mode: 'Markdown' });
     }
     
@@ -644,20 +712,28 @@ Examples:
     if (action === 'on') {
       if (ctx.chat.type !== 'private') {
         const userIsAdmin = await isAdmin(ctx);
-        if (!userIsAdmin) return ctx.reply('☠ Only Elders can awaken the Sentinel.');
+        if (!userIsAdmin) return ctx.reply('☠ Only Elders can awaken the Sentinel in group chats.');
       }
       
-      db.run(`INSERT OR REPLACE INTO luna_settings VALUES (?, 1, ?, CURRENT_TIMESTAMP)`,
+      db.run(`INSERT OR REPLACE INTO luna_settings (chat_id, enabled, enabled_by, enabled_at) 
+              VALUES (?, 1, ?, CURRENT_TIMESTAMP)`,
              [chatId, ctx.from.id.toString()]);
       
-      ctx.reply(`☬ *THE SENTINEL AWAKENS* ☬\n\nSpeak, and the shadows will answer.\n/luna off to silence.`, 
+      ctx.reply(`☬ *THE VEILED SENTINEL AWAKENS* ☬\n\nSpeak, and the shadows will answer.\n/luna off to silence.`, 
                 { parse_mode: 'Markdown' });
     } else if (action === 'off') {
+      if (ctx.chat.type !== 'private') {
+        const userIsAdmin = await isAdmin(ctx);
+        if (!userIsAdmin) return ctx.reply('☠ Only Elders can silence the Sentinel.');
+      }
+      
       db.run(`DELETE FROM luna_settings WHERE chat_id = ?`, [chatId]);
-      ctx.reply(`☾ *THE SENTINEL RETURNS TO THE VOID* ☾`, { parse_mode: 'Markdown' });
+      ctx.reply(`☾ *THE SENTINEL RETURNS TO THE VOID* ☾\n\nThe shadows settle once more.`, 
+                { parse_mode: 'Markdown' });
     }
   } catch (error) {
-    ctx.reply('☠ An error occurred.');
+    console.error('Luna command error:', error.message);
+    ctx.reply('☠ An error occurred while communing with the Sentinel.');
   }
 });
 
@@ -675,7 +751,7 @@ bot.on('text', async (ctx) => {
         prompt: ctx.message.text,
         system: LUNA_SYSTEM_PROMPT,
         search: "false"
-      }, { timeout: 10000 });
+      }, { timeout: 15000 });
       
       if (response.data?.response) {
         let replyText = response.data.response;
@@ -685,13 +761,22 @@ bot.on('text', async (ctx) => {
         await ctx.reply('☠ The Sentinel cannot perceive your words.');
       }
     } catch (error) {
-      await ctx.reply('☠ The shadows are turbulent. Try again.');
+      console.error('Luna API error:', error.message);
+      if (error.code === 'ECONNABORTED') {
+        await ctx.reply('☠ The shadows are slow to respond. Try again in a moment.');
+      } else if (error.response?.status === 404) {
+        await ctx.reply('☠ The API endpoint could not be found. Please check the URL.');
+      } else if (error.response?.status === 429) {
+        await ctx.reply('☠ The Sentinel is overwhelmed with messages. Please wait.');
+      } else {
+        await ctx.reply('☠ The shadows are turbulent. The Sentinel cannot reach through the veil at this moment.');
+      }
     }
   });
 });
 
 // ============================================
-// ===== CODE COMMANDS =====
+// ===== CODE COMMANDS - FIXED =====
 // ============================================
 
 bot.command('code', async (ctx) => {
@@ -704,15 +789,26 @@ bot.command('code', async (ctx) => {
 
 /code [language] [prompt]
 
+Transform your intentions into executable shadows.
+
 Examples:
 /code python Hello world function
 /code javascript Calculate fibonacci
 /code html Dark login form
+/code css Neon button with glow
+
+*Parameters:*
+• language - python, javascript, html, css, etc.
+• prompt   - describe what you want to create
       `, { parse_mode: 'Markdown' });
     }
     
     const language = args[1];
     const prompt = args.slice(2).join(' ');
+    
+    if (prompt.length < 5) {
+      return ctx.reply('☠ Your prompt is too vague. Please provide more detail.');
+    }
     
     await ctx.sendChatAction('typing');
     
@@ -726,15 +822,22 @@ Examples:
 ☬ *CODE FROM THE SHADOWS* ☬
 
 Language: ${language}
+Intent: ${prompt}
 
 \`\`\`${language}
 ${response.data.code}
 \`\`\`
+
+⚔ The Veil has woven your request into executable form.
       `;
       
       if (codeResponse.length > 4000) {
+        await ctx.reply(`☬ Code generated but too long. Sending as file...`);
         const buffer = Buffer.from(response.data.code, 'utf-8');
-        const ext = language === 'javascript' ? 'js' : language === 'python' ? 'py' : 'txt';
+        const ext = language === 'javascript' ? 'js' : 
+                   language === 'python' ? 'py' :
+                   language === 'html' ? 'html' :
+                   language === 'css' ? 'css' : 'txt';
         await ctx.replyWithDocument({
           source: buffer,
           filename: `shadow_code.${ext}`
@@ -743,10 +846,17 @@ ${response.data.code}
         await ctx.reply(codeResponse, { parse_mode: 'Markdown' });
       }
     } else {
-      await ctx.reply('☠ The Veil could not weave your code.');
+      await ctx.reply('☠ The Veil could not weave your code. Try a clearer incantation.');
     }
   } catch (error) {
-    ctx.reply('☠ Code weaving failed. Try again.');
+    console.error('Code command error:', error.message);
+    if (error.response?.status === 400) {
+      ctx.reply('☠ Invalid request format. Use: /code [language] [prompt]');
+    } else if (error.code === 'ECONNABORTED') {
+      ctx.reply('☠ The code weaving ritual timed out. Try again.');
+    } else {
+      ctx.reply('☠ Code weaving failed. The shadows are turbulent.');
+    }
   }
 });
 
@@ -760,13 +870,23 @@ bot.command('fix', async (ctx) => {
 
 /fix [your code]
 
+Submit your code to the Veil for analysis.
+The Sentinel will detect flaws and suggest corrections.
+
 Examples:
 /fix function add(a,b) { return a+b }
-/fix <div>Hello</div
+/fix <div class="container">Hello</div
+/fix for i in range(10) print(i)
+
+*Note:* Provide the actual code you want analyzed.
       `, { parse_mode: 'Markdown' });
     }
     
     const code = args.slice(1).join(' ');
+    
+    if (code.length < 10) {
+      return ctx.reply('☠ The code is too short to analyze. Provide more substantial code.');
+    }
     
     await ctx.sendChatAction('typing');
     
@@ -775,23 +895,32 @@ Examples:
     }, { timeout: 15000 });
     
     if (response.data?.bugs) {
-      ctx.reply(`
+      const fixResponse = `
 ⚚ *BUG DETECTION RESULTS* ⚚
 
+*Analysis:*
 ${response.data.bugs}
 
-${response.data.fix ? `\n*Fix:* ${response.data.fix}` : ''}
-      `, { parse_mode: 'Markdown' });
+${response.data.fix ? `\n*Suggested Fix:*\n${response.data.fix}` : ''}
+
+☬ The Silent Ledger records every flaw. Correct them with precision.
+      `;
+      await ctx.reply(fixResponse, { parse_mode: 'Markdown' });
     } else {
-      ctx.reply('☠ No bugs detected or analysis failed.');
+      await ctx.reply('☠ No bugs detected or analysis failed.');
     }
   } catch (error) {
-    ctx.reply('☠ Bug detection failed.');
+    console.error('Fix command error:', error.message);
+    if (error.response?.status === 400) {
+      ctx.reply('☠ Invalid code format. Please check your submission.');
+    } else {
+      ctx.reply('☠ Bug detection failed. The shadows are turbulent.');
+    }
   }
 });
 
 // ============================================
-// ===== SUPPORT SYSTEM =====
+// ===== SUPPORT SYSTEM - FIXED =====
 // ============================================
 
 bot.command('support', (ctx) => {
@@ -803,25 +932,32 @@ bot.command('support', (ctx) => {
       return ctx.reply(`
 📬 *SUPPORT SYSTEM* 📬
 
-/support [message] - Contact Elders
-/support list - View pending (owner only)
+/support [message] - Send a message to the Elders
+/support list      - View pending messages (Elders only)
 
 Examples:
-/support I have an issue
+/support I have an issue with my initiation
+/support How long does approval take?
 /support list
+
+*Note:* The Elders will reply to you personally.
       `, { parse_mode: 'Markdown' });
     }
     
     if (args[1] === 'list') {
-      if (!isOwner(ctx)) return ctx.reply('☠ Only Elders can view support list.');
+      if (!isOwner(ctx)) return ctx.reply('☠ Only Elders can view the support list.');
       
       db.all(`SELECT * FROM support_messages WHERE replied = 0 ORDER BY created_at DESC LIMIT 10`, [], (err, rows) => {
-        if (err || !rows.length) return ctx.reply('📬 No pending messages.');
+        if (err) {
+          console.error('Database error:', err);
+          return ctx.reply('☠ Failed to query support messages.');
+        }
+        if (!rows || rows.length === 0) return ctx.reply('📬 No pending support messages.');
         
-        let msg = '📬 *PENDING MESSAGES* 📬\n\n';
+        let msg = '📬 *PENDING SUPPORT MESSAGES* 📬\n\n';
         rows.forEach(row => {
-          msg += `#${row.id} - @${row.username || 'unknown'}\n`;
-          msg += `Msg: ${row.message.substring(0, 50)}${row.message.length > 50 ? '...' : ''}\n`;
+          msg += `#${row.id} - From: @${row.username || 'unknown'}\n`;
+          msg += `Message: ${row.message.substring(0, 50)}${row.message.length > 50 ? '...' : ''}\n`;
           msg += `Date: ${new Date(row.created_at).toLocaleString()}\n\n`;
         });
         ctx.reply(msg, { parse_mode: 'Markdown' });
@@ -831,41 +967,76 @@ Examples:
     
     const userId = ctx.from.id.toString();
     const username = ctx.from.username || 'unknown';
+    const firstName = ctx.from.first_name || 'Unknown';
     
     db.run(`INSERT INTO support_messages (user_id, username, message) VALUES (?, ?, ?)`,
            [userId, username, message], function(err) {
-      if (err) return ctx.reply('☠ Failed to send.');
+      if (err) {
+        console.error('Support message error:', err);
+        return ctx.reply('☠ Failed to send message. Try again later.');
+      }
+      
+      const msgId = this.lastID;
       
       bot.telegram.sendMessage(OWNER_ID, 
-        `📬 Support #${this.lastID} from @${username}: ${message}`);
-      ctx.reply('✅ Message sent to Elders.');
+        `📬 *NEW SUPPORT MESSAGE #${msgId}* 📬\n\nFrom: ${firstName} (@${username})\nUser ID: ${userId}\n\nMessage:\n${message}\n\nTo reply: /reply ${msgId} your message`,
+        { parse_mode: 'Markdown' }).catch(console.error);
+      
+      ctx.reply('✅ Your message has been sent to the Elders. They will reply soon.');
     });
   } catch (error) {
-    ctx.reply('☠ An error occurred.');
+    console.error('Support command error:', error.message);
+    ctx.reply('☠ An error occurred in the support system.');
   }
 });
 
 bot.command('reply', (ctx) => {
-  if (!isOwner(ctx)) return ctx.reply('☠ Only Elders can reply.');
+  if (!isOwner(ctx)) return ctx.reply('☠ Only Elders can reply to support messages.');
   
   const args = ctx.message.text.split(' ');
   const msgId = args[1];
   const replyMessage = args.slice(2).join(' ');
   
   if (!msgId || !replyMessage) {
-    return ctx.reply('📬 Usage: /reply [message_id] [your reply]');
+    return ctx.reply(`
+📬 *REPLY TO SUPPORT* 📬
+
+/reply [message_id] [your reply]
+
+Reply to a user's support message.
+
+Example:
+/reply 5 Your initiation has been reviewed. Please wait 24 hours.
+
+To see pending messages: /support list
+    `, { parse_mode: 'Markdown' });
   }
   
   db.get(`SELECT * FROM support_messages WHERE id = ?`, [msgId], (err, row) => {
-    if (err || !row) return ctx.reply('Message not found.');
+    if (err || !row) {
+      return ctx.reply('❌ Support message not found.');
+    }
     
     db.run(`UPDATE support_messages SET replied = 1 WHERE id = ?`, [msgId]);
     
-    bot.telegram.sendMessage(row.user_id, 
-      `📬 *REPLY FROM ELDERS* 📬\n\n${replyMessage}`, 
-      { parse_mode: 'Markdown' })
-      .then(() => ctx.reply('✅ Reply sent.'))
-      .catch(() => ctx.reply('❌ Failed to send.'));
+    const reply = `
+📬 *REPLY FROM THE ELDERS* 📬
+
+Your support message #${msgId} has been answered:
+
+"${replyMessage}"
+
+-The Council of Elders
+    `;
+    
+    bot.telegram.sendMessage(row.user_id, reply, { parse_mode: 'Markdown' })
+      .then(() => {
+        ctx.reply(`✅ Reply sent to user @${row.username || row.user_id}.`);
+      })
+      .catch(err => {
+        console.error('Reply error:', err);
+        ctx.reply('❌ Failed to send reply. User may have blocked the bot or started a chat.');
+      });
   });
 });
 
@@ -874,54 +1045,119 @@ bot.command('reply', (ctx) => {
 // ============================================
 
 bot.command('broadcast', (ctx) => {
-  if (!isOwner(ctx)) return ctx.reply('☠ Only the Veil Keeper can broadcast.');
+  if (!isOwner(ctx)) return ctx.reply('☠ Only the Veil Keeper can broadcast messages.');
   
   const message = ctx.message.text.split(' ').slice(1).join(' ');
   
   if (!message) {
-    return ctx.reply('📢 Usage: /broadcast [message]');
+    return ctx.reply(`
+📢 *BROADCAST SYSTEM* 📢
+
+/broadcast [message]
+
+Send a message to all registered initiates and group members.
+
+Example:
+/broadcast The Veil will be updated tonight at midnight
+
+*Note:* This command affects ALL users. Use wisely.
+    `, { parse_mode: 'Markdown' });
   }
   
-  ctx.reply('📢 Broadcasting...');
+  ctx.reply('📢 Broadcasting message to all shadows... This may take a moment.');
   
   db.all(`SELECT DISTINCT chat_id FROM initiates WHERE chat_id IS NOT NULL`, [], (err, initiates) => {
     db.all(`SELECT user_id FROM group_members WHERE is_banned = 0`, [], (gErr, members) => {
       
       const recipients = new Set();
+      let successCount = 0;
+      let failCount = 0;
+      
       initiates.forEach(i => { if (i.chat_id) recipients.add(i.chat_id); });
       members.forEach(m => recipients.add(m.user_id));
       
       const total = recipients.size;
-      if (total === 0) return ctx.reply('📢 No recipients.');
       
-      let success = 0, fail = 0;
-      const broadcastMsg = `📢 *SHADOW BROADCAST* 📢\n\n${message}`;
+      if (total === 0) {
+        return ctx.reply('📢 No recipients found.');
+      }
+      
+      ctx.reply(`📢 Broadcasting to ${total} shadows...`);
+      
+      const broadcastMessage = `
+📢 *SHADOW BROADCAST* 📢
+
+${message}
+
+— The Veil Keeper
+${new Date().toLocaleString()}
+      `;
       
       recipients.forEach(chatId => {
-        bot.telegram.sendMessage(chatId, broadcastMsg, { parse_mode: 'Markdown' })
-          .then(() => { success++; if (success + fail === total) ctx.reply(`✅ Sent: ${success}\n❌ Failed: ${fail}`); })
-          .catch(() => { fail++; if (success + fail === total) ctx.reply(`✅ Sent: ${success}\n❌ Failed: ${fail}`); });
+        bot.telegram.sendMessage(chatId, broadcastMessage, { parse_mode: 'Markdown' })
+          .then(() => {
+            successCount++;
+            if (successCount + failCount === total) {
+              ctx.reply(`✅ Broadcast complete!\n✓ Sent: ${successCount}\n✗ Failed: ${failCount}`);
+            }
+          })
+          .catch(() => {
+            failCount++;
+            if (successCount + failCount === total) {
+              ctx.reply(`✅ Broadcast complete!\n✓ Sent: ${successCount}\n✗ Failed: ${failCount}`);
+            }
+          });
       });
+      
+      db.run(`INSERT INTO broadcasts (message, recipients) VALUES (?, ?)`, [message, total]);
     });
   });
 });
 
 // ============================================
-// ===== GROUP MANAGEMENT COMMANDS =====
+// ===== GROUP MANAGEMENT COMMANDS - ALL FIXED WITH GROUP CHECK =====
 // ============================================
 
+// Helper function to check if command is used in a group
+function isGroupChat(ctx) {
+  return ctx.chat.type === 'group' || ctx.chat.type === 'supergroup';
+}
+
+// /warn command
 bot.command('warn', async (ctx) => {
-  if (!await isAdmin(ctx)) return ctx.reply('☠ Only Elders can warn.');
+  if (!isGroupChat(ctx)) {
+    return ctx.reply('⚠️ This command can only be used in groups.');
+  }
+  
+  if (!await isAdmin(ctx)) {
+    return ctx.reply('☠ Only Elders can issue warnings.');
+  }
   
   const args = ctx.message.text.split(' ');
+  
   if (!ctx.message.reply_to_message && args.length < 3) {
-    return ctx.reply('⚠️ Usage: Reply to message: /warn [reason] OR /warn @username [reason]');
+    return ctx.reply(`
+⚠️ *WARN COMMAND USAGE* ⚠️
+
+*Options:*
+• Reply to a message: /warn [reason]
+• Use @username: /warn @username [reason]
+
+*Examples:*
+(reply to message) /warn Spamming the chat
+/warn @shadow_knight Breaking rule #3
+
+*Note:* Warnings are recorded in the Silent Ledger.
+5 warnings result in automatic banishment.
+    `, { parse_mode: 'Markdown' });
   }
   
   const targetUser = await getTargetUser(ctx);
-  if (!targetUser) return ctx.reply('⚠️ User not found.');
+  if (!targetUser) {
+    return ctx.reply('⚠️ User not found. Reply to their message or use @username.');
+  }
   
-  const reason = args.slice(ctx.message.reply_to_message ? 1 : 2).join(' ') || 'No reason';
+  const reason = args.slice(ctx.message.reply_to_message ? 1 : 2).join(' ') || 'No reason provided';
   
   db.run(`INSERT INTO warnings (user_id, admin_id, reason) VALUES (?, ?, ?)`,
          [targetUser.id.toString(), ctx.from.id.toString(), reason]);
@@ -929,23 +1165,68 @@ bot.command('warn', async (ctx) => {
   db.run(`INSERT OR IGNORE INTO group_members (user_id, username, first_name) VALUES (?, ?, ?)`,
          [targetUser.id.toString(), targetUser.username || '', targetUser.first_name || '']);
   
-  db.run(`UPDATE group_members SET warnings = warnings + 1 WHERE user_id = ?`, [targetUser.id.toString()]);
+  db.run(`UPDATE group_members SET warnings = warnings + 1, last_active = CURRENT_TIMESTAMP 
+          WHERE user_id = ?`, [targetUser.id.toString()]);
   
-  db.get(`SELECT COUNT(*) as count FROM warnings WHERE user_id = ?`, [targetUser.id.toString()], (err, row) => {
-    ctx.reply(`⚠️ Warning #${row.count} for ${targetUser.first_name}\nReason: ${reason}`);
+  db.get(`SELECT COUNT(*) as count FROM warnings WHERE user_id = ?`, 
+         [targetUser.id.toString()], (err, row) => {
+    const warningCount = row ? row.count : 1;
     
-    if (row.count >= 5) {
+    const warnMessage = `
+⚠️ *WARNING ISSUED* ⚠️
+
+User: ${targetUser.first_name || 'Unknown'} ${targetUser.last_name || ''}
+Username: ${targetUser.username ? '@' + targetUser.username : 'None'}
+Warning #${warningCount}
+
+Reason: ${reason}
+
+Issued by: ${ctx.from.first_name}
+
+${warningCount >= 5 ? '⚠️ This user has reached 5 warnings and will be automatically banned!' : ''}
+    `;
+    
+    ctx.reply(warnMessage, { parse_mode: 'Markdown' });
+    
+    if (warningCount >= 5) {
       try {
         ctx.banChatMember(targetUser.id);
-        ctx.reply(`☠ User auto-banned for 5 warnings.`);
-      } catch (e) {}
+        ctx.reply(`☠ User ${targetUser.first_name} has been automatically banned for reaching 5 warnings.`);
+      } catch (e) {
+        console.error('Auto-ban error:', e);
+      }
     }
   });
 });
 
+// /warnings command
 bot.command('warnings', async (ctx) => {
+  if (!isGroupChat(ctx)) {
+    return ctx.reply('⚠️ This command can only be used in groups.');
+  }
+  
+  const args = ctx.message.text.split(' ');
+  
+  if (args.length === 1 && !ctx.message.reply_to_message) {
+    return ctx.reply(`
+⚠️ *WARNINGS COMMAND USAGE* ⚠️
+
+*Options:*
+• /warnings - Check your own warnings
+• Reply to a message: /warnings - Check that user's warnings
+• /warnings @username - Check another user's warnings
+
+*Examples:*
+/warnings
+(reply to message) /warnings
+/warnings @shadow_knight
+    `, { parse_mode: 'Markdown' });
+  }
+  
   const targetUser = await getTargetUser(ctx);
-  if (!targetUser) return ctx.reply('⚠️ User not found.');
+  if (!targetUser) {
+    return ctx.reply('⚠️ User not found. Reply to their message or use @username.');
+  }
   
   const isAdminUser = await isAdmin(ctx);
   if (!isAdminUser && targetUser.id !== ctx.from.id) {
@@ -954,42 +1235,103 @@ bot.command('warnings', async (ctx) => {
   
   db.all(`SELECT * FROM warnings WHERE user_id = ? ORDER BY timestamp DESC`, 
          [targetUser.id.toString()], (err, rows) => {
-    if (err || !rows.length) return ctx.reply(`✅ ${targetUser.first_name} has no warnings.`);
+    if (err || !rows.length) {
+      return ctx.reply(`✅ ${targetUser.first_name || 'User'} has no warnings. The shadows are pleased.`);
+    }
     
-    let msg = `⚠️ Warnings for ${targetUser.first_name}:\n\n`;
-    rows.forEach((w, i) => msg += `${i+1}. ${w.reason} (${new Date(w.timestamp).toLocaleDateString()})\n`);
-    ctx.reply(msg);
+    let msg = `⚠️ *WARNINGS FOR ${targetUser.first_name?.toUpperCase() || 'USER'}* ⚠️\n\n`;
+    rows.forEach((warn, i) => {
+      msg += `${i+1}. ${warn.reason}\n   Date: ${new Date(warn.timestamp).toLocaleString()}\n\n`;
+    });
+    
+    ctx.reply(msg, { parse_mode: 'Markdown' });
   });
 });
 
+// /clearwarn command
 bot.command('clearwarn', async (ctx) => {
-  if (!await isAdmin(ctx)) return ctx.reply('☠ Only Elders can clear warnings.');
+  if (!isGroupChat(ctx)) {
+    return ctx.reply('⚠️ This command can only be used in groups.');
+  }
   
-  const targetUser = await getTargetUser(ctx);
-  if (!targetUser) return ctx.reply('⚠️ User not found.');
-  
-  db.run(`DELETE FROM warnings WHERE user_id = ?`, [targetUser.id.toString()], function(err) {
-    if (err) return ctx.reply('☠ Failed to clear.');
-    db.run(`UPDATE group_members SET warnings = 0 WHERE user_id = ?`, [targetUser.id.toString()]);
-    ctx.reply(`✅ Warnings cleared for ${targetUser.first_name}.`);
-  });
-});
-
-bot.command('mute', async (ctx) => {
-  if (!await isAdmin(ctx)) return ctx.reply('☠ Only Elders can mute.');
+  if (!await isAdmin(ctx)) {
+    return ctx.reply('☠ Only Elders can clear warnings.');
+  }
   
   const args = ctx.message.text.split(' ');
+  
   if (!ctx.message.reply_to_message && args.length < 2) {
-    return ctx.reply('🔇 Usage: Reply to message: /mute [minutes] OR /mute @username [minutes]');
+    return ctx.reply(`
+✅ *CLEARWARN COMMAND USAGE* ✅
+
+*Options:*
+• Reply to a message: /clearwarn
+• /clearwarn @username
+
+*Examples:*
+(reply to message) /clearwarn
+/clearwarn @shadow_knight
+
+*Note:* This removes ALL warnings from the user's record.
+    `, { parse_mode: 'Markdown' });
   }
   
   const targetUser = await getTargetUser(ctx);
-  if (!targetUser) return ctx.reply('⚠️ User not found.');
+  if (!targetUser) {
+    return ctx.reply('⚠️ User not found. Reply to their message or use @username.');
+  }
+  
+  db.run(`DELETE FROM warnings WHERE user_id = ?`, [targetUser.id.toString()], function(err) {
+    if (err) {
+      return ctx.reply('☠ Failed to clear warnings.');
+    }
+    
+    db.run(`UPDATE group_members SET warnings = 0 WHERE user_id = ?`, [targetUser.id.toString()]);
+    
+    ctx.reply(`✅ Warnings cleared for ${targetUser.first_name}. Their record is now clean.`);
+  });
+});
+
+// /mute command
+bot.command('mute', async (ctx) => {
+  if (!isGroupChat(ctx)) {
+    return ctx.reply('⚠️ This command can only be used in groups.');
+  }
+  
+  if (!await isAdmin(ctx)) {
+    return ctx.reply('☠ Only Elders can mute users.');
+  }
+  
+  const args = ctx.message.text.split(' ');
+  
+  if (!ctx.message.reply_to_message && args.length < 2) {
+    return ctx.reply(`
+🔇 *MUTE COMMAND USAGE* 🔇
+
+*Options:*
+• Reply to a message: /mute [minutes]
+• /mute @username [minutes]
+
+*Examples:*
+(reply to message) /mute 30
+/mute @shadow_knight 60
+
+*Parameters:*
+• minutes - Duration in minutes (default: 60, max: 1440)
+    `, { parse_mode: 'Markdown' });
+  }
+  
+  const targetUser = await getTargetUser(ctx);
+  if (!targetUser) {
+    return ctx.reply('⚠️ User not found. Reply to their message or use @username.');
+  }
   
   let minutes = 60;
   if (args.length >= 2) {
     const parsed = parseInt(args[ctx.message.reply_to_message ? 1 : 2]);
-    if (!isNaN(parsed)) minutes = Math.min(parsed, 1440);
+    if (!isNaN(parsed) && parsed > 0) {
+      minutes = Math.min(parsed, 1440);
+    }
   }
   
   try {
@@ -1003,17 +1345,44 @@ bot.command('mute', async (ctx) => {
       },
       until_date: Math.floor(Date.now() / 1000) + (minutes * 60)
     });
-    ctx.reply(`🔇 ${targetUser.first_name} muted for ${minutes} minutes.`);
+    
+    ctx.reply(`🔇 ${targetUser.first_name} has been muted for ${minutes} minutes. Silence shall prevail.`);
   } catch (error) {
-    ctx.reply('☠ Failed to mute. Am I admin?');
+    console.error('Mute error:', error);
+    ctx.reply('☠ Failed to mute user. Make sure I have admin permissions.');
   }
 });
 
+// /unmute command
 bot.command('unmute', async (ctx) => {
-  if (!await isAdmin(ctx)) return ctx.reply('☠ Only Elders can unmute.');
+  if (!isGroupChat(ctx)) {
+    return ctx.reply('⚠️ This command can only be used in groups.');
+  }
+  
+  if (!await isAdmin(ctx)) {
+    return ctx.reply('☠ Only Elders can unmute users.');
+  }
+  
+  const args = ctx.message.text.split(' ');
+  
+  if (!ctx.message.reply_to_message && args.length < 2) {
+    return ctx.reply(`
+🔊 *UNMUTE COMMAND USAGE* 🔊
+
+*Options:*
+• Reply to a message: /unmute
+• /unmute @username
+
+*Examples:*
+(reply to message) /unmute
+/unmute @shadow_knight
+    `, { parse_mode: 'Markdown' });
+  }
   
   const targetUser = await getTargetUser(ctx);
-  if (!targetUser) return ctx.reply('⚠️ User not found.');
+  if (!targetUser) {
+    return ctx.reply('⚠️ User not found. Reply to their message or use @username.');
+  }
   
   try {
     await ctx.restrictChatMember(targetUser.id, {
@@ -1025,56 +1394,135 @@ bot.command('unmute', async (ctx) => {
         can_add_web_page_previews: true
       }
     });
-    ctx.reply(`🔊 ${targetUser.first_name} unmuted.`);
+    
+    ctx.reply(`🔊 ${targetUser.first_name} has been unmuted. Their voice returns to the shadows.`);
   } catch (error) {
-    ctx.reply('☠ Failed to unmute.');
+    ctx.reply('☠ Failed to unmute user.');
   }
 });
 
+// /kick command
 bot.command('kick', async (ctx) => {
-  if (!await isAdmin(ctx)) return ctx.reply('☠ Only Elders can kick.');
+  if (!isGroupChat(ctx)) {
+    return ctx.reply('⚠️ This command can only be used in groups.');
+  }
+  
+  if (!await isAdmin(ctx)) {
+    return ctx.reply('☠ Only Elders can kick users.');
+  }
+  
+  const args = ctx.message.text.split(' ');
+  
+  if (!ctx.message.reply_to_message && args.length < 2) {
+    return ctx.reply(`
+👢 *KICK COMMAND USAGE* 👢
+
+*Options:*
+• Reply to a message: /kick
+• /kick @username
+
+*Examples:*
+(reply to message) /kick
+/kick @shadow_knight
+
+*Note:* Kicked users can rejoin if they have the invite link.
+    `, { parse_mode: 'Markdown' });
+  }
   
   const targetUser = await getTargetUser(ctx);
-  if (!targetUser) return ctx.reply('⚠️ User not found.');
+  if (!targetUser) {
+    return ctx.reply('⚠️ User not found. Reply to their message or use @username.');
+  }
   
   try {
     await ctx.kickChatMember(targetUser.id);
     await ctx.unbanChatMember(targetUser.id);
-    ctx.reply(`👢 ${targetUser.first_name} kicked.`);
+    ctx.reply(`👢 ${targetUser.first_name} has been kicked from the group. They may return if invited.`);
   } catch (error) {
-    ctx.reply('☠ Failed to kick.');
+    ctx.reply('☠ Failed to kick user.');
   }
 });
 
+// /ban command
 bot.command('ban', async (ctx) => {
-  if (!await isAdmin(ctx)) return ctx.reply('☠ Only Elders can ban.');
+  if (!isGroupChat(ctx)) {
+    return ctx.reply('⚠️ This command can only be used in groups.');
+  }
+  
+  if (!await isAdmin(ctx)) {
+    return ctx.reply('☠ Only Elders can ban users.');
+  }
   
   const args = ctx.message.text.split(' ');
+  
   if (!ctx.message.reply_to_message && args.length < 2) {
-    return ctx.reply('☠ Usage: Reply to message: /ban [reason] OR /ban @username [reason]');
+    return ctx.reply(`
+☠ *BAN COMMAND USAGE* ☠
+
+*Options:*
+• Reply to a message: /ban [reason]
+• /ban @username [reason]
+
+*Examples:*
+(reply to message) /ban Excessive spam
+/ban @shadow_knight Violation of rule #4
+
+*Note:* Banned users cannot rejoin.
+    `, { parse_mode: 'Markdown' });
   }
   
   const targetUser = await getTargetUser(ctx);
-  if (!targetUser) return ctx.reply('⚠️ User not found.');
+  if (!targetUser) {
+    return ctx.reply('⚠️ User not found. Reply to their message or use @username.');
+  }
   
-  const reason = args.slice(ctx.message.reply_to_message ? 1 : 2).join(' ') || 'No reason';
+  const reason = args.slice(ctx.message.reply_to_message ? 1 : 2).join(' ') || 'No reason provided';
   
   try {
     await ctx.banChatMember(targetUser.id);
+    
     db.run(`INSERT OR REPLACE INTO group_members (user_id, username, first_name, is_banned, ban_reason, banned_at) 
             VALUES (?, ?, ?, 1, ?, CURRENT_TIMESTAMP)`,
            [targetUser.id.toString(), targetUser.username || '', targetUser.first_name || '', reason]);
-    ctx.reply(`☠ ${targetUser.first_name} banned.\nReason: ${reason}`);
+    
+    ctx.reply(`
+☠ *BANISHMENT EXECUTED* ☠
+
+User: ${targetUser.first_name}
+Reason: ${reason}
+
+This soul has been cast into the void, never to return.
+    `, { parse_mode: 'Markdown' });
   } catch (error) {
-    ctx.reply('☠ Failed to ban.');
+    ctx.reply('☠ Failed to ban user.');
   }
 });
 
+// /unban command
 bot.command('unban', async (ctx) => {
-  if (!await isAdmin(ctx)) return ctx.reply('☠ Only Elders can unban.');
+  if (!isGroupChat(ctx)) {
+    return ctx.reply('⚠️ This command can only be used in groups.');
+  }
+  
+  if (!await isAdmin(ctx)) {
+    return ctx.reply('☠ Only Elders can unban users.');
+  }
   
   const args = ctx.message.text.split(' ');
-  if (args.length < 2) return ctx.reply('🔄 Usage: /unban [user_id or @username]');
+  
+  if (args.length < 2) {
+    return ctx.reply(`
+🔄 *UNBAN COMMAND USAGE* 🔄
+
+/unban [user_id or @username]
+
+Restore a banished soul to the Veil.
+
+*Examples:*
+/unban 123456789
+/unban @shadow_knight
+    `, { parse_mode: 'Markdown' });
+  }
   
   let targetId = args[1];
   
@@ -1083,24 +1531,53 @@ bot.command('unban', async (ctx) => {
       const chat = await ctx.telegram.getChat(targetId);
       targetId = chat.id.toString();
     } catch (error) {
-      return ctx.reply('☠ User not found.');
+      return ctx.reply('☠ User not found. Check the username.');
     }
   }
   
   try {
     await ctx.unbanChatMember(targetId);
+    
     db.run(`UPDATE group_members SET is_banned = 0 WHERE user_id = ?`, [targetId]);
-    ctx.reply(`✅ User ${targetId} unbanned.`);
+    
+    ctx.reply(`✅ User ${targetId} has been unbanned. They may return to the shadows.`);
   } catch (error) {
-    ctx.reply('☠ Failed to unban.');
+    ctx.reply('☠ Failed to unban user.');
   }
 });
 
+// /promote command
 bot.command('promote', async (ctx) => {
-  if (!await isAdmin(ctx)) return ctx.reply('☠ Only Elders can promote.');
+  if (!isGroupChat(ctx)) {
+    return ctx.reply('⚠️ This command can only be used in groups.');
+  }
+  
+  if (!await isAdmin(ctx)) {
+    return ctx.reply('☠ Only Elders can promote users.');
+  }
+  
+  const args = ctx.message.text.split(' ');
+  
+  if (!ctx.message.reply_to_message && args.length < 2) {
+    return ctx.reply(`
+⬆️ *PROMOTE COMMAND USAGE* ⬆️
+
+*Options:*
+• Reply to a message: /promote
+• /promote @username
+
+*Examples:*
+(reply to message) /promote
+/promote @shadow_knight
+
+*Note:* Promoted users gain admin privileges.
+    `, { parse_mode: 'Markdown' });
+  }
   
   const targetUser = await getTargetUser(ctx);
-  if (!targetUser) return ctx.reply('⚠️ User not found.');
+  if (!targetUser) {
+    return ctx.reply('⚠️ User not found. Reply to their message or use @username.');
+  }
   
   try {
     await ctx.promoteChatMember(targetUser.id, {
@@ -1111,17 +1588,45 @@ bot.command('promote', async (ctx) => {
       can_pin_messages: true,
       can_promote_members: false
     });
-    ctx.reply(`⬆️ ${targetUser.first_name} promoted to admin.`);
+    
+    ctx.reply(`⬆️ ${targetUser.first_name} has been promoted to admin. They now serve as an Elder.`);
   } catch (error) {
-    ctx.reply('☠ Failed to promote.');
+    ctx.reply('☠ Failed to promote user.');
   }
 });
 
+// /demote command
 bot.command('demote', async (ctx) => {
-  if (!await isAdmin(ctx)) return ctx.reply('☠ Only Elders can demote.');
+  if (!isGroupChat(ctx)) {
+    return ctx.reply('⚠️ This command can only be used in groups.');
+  }
+  
+  if (!await isAdmin(ctx)) {
+    return ctx.reply('☠ Only Elders can demote users.');
+  }
+  
+  const args = ctx.message.text.split(' ');
+  
+  if (!ctx.message.reply_to_message && args.length < 2) {
+    return ctx.reply(`
+⬇️ *DEMOTE COMMAND USAGE* ⬇️
+
+*Options:*
+• Reply to a message: /demote
+• /demote @username
+
+*Examples:*
+(reply to message) /demote
+/demote @shadow_knight
+
+*Note:* Demoted users lose admin privileges.
+    `, { parse_mode: 'Markdown' });
+  }
   
   const targetUser = await getTargetUser(ctx);
-  if (!targetUser) return ctx.reply('⚠️ User not found.');
+  if (!targetUser) {
+    return ctx.reply('⚠️ User not found. Reply to their message or use @username.');
+  }
   
   try {
     await ctx.promoteChatMember(targetUser.id, {
@@ -1132,9 +1637,10 @@ bot.command('demote', async (ctx) => {
       can_pin_messages: false,
       can_promote_members: false
     });
-    ctx.reply(`⬇️ ${targetUser.first_name} demoted.`);
+    
+    ctx.reply(`⬇️ ${targetUser.first_name} has been demoted from admin. They return to the ranks.`);
   } catch (error) {
-    ctx.reply('☠ Failed to demote.');
+    ctx.reply('☠ Failed to demote user.');
   }
 });
 
@@ -1143,39 +1649,49 @@ bot.command('demote', async (ctx) => {
 // ============================================
 
 bot.command('review', (ctx) => {
-  if (!isOwner(ctx)) return ctx.reply('☠ Only the Veil Keeper can review.');
+  if (!isOwner(ctx)) {
+    return ctx.reply('☠ Only the Veil Keeper can review initiates.');
+  }
   
   db.all(`SELECT * FROM initiates WHERE status = 'pending' ORDER BY created_at ASC`, [], (err, rows) => {
-    if (err || !rows?.length) return ctx.reply('☬ No pending initiates.');
+    if (err) {
+      console.error('Database error:', err);
+      return ctx.reply('☠ Failed to query the Silent Ledger.');
+    }
     
-    ctx.reply(`☬ Found ${rows.length} pending:`);
+    if (!rows || rows.length === 0) {
+      return ctx.reply('☬ No pending initiates. The Veil is quiet.');
+    }
     
-    rows.forEach((row, i) => {
+    ctx.reply(`☬ Found ${rows.length} pending initiate(s):`);
+    
+    rows.forEach((row, index) => {
       setTimeout(() => {
         ctx.replyWithMarkdown(`
-*Pending #${row.id}*
-👤 ${row.name}
-📧 ${row.email}
-🏷️ ${row.moniker}
-⚔️ ${row.role}
-𓃼 ${row.oat}
-📅 ${new Date(row.created_at).toLocaleDateString()}
+*Pending Initiate #${row.id}*
+👤 Name: ${row.name}
+📧 Email: ${row.email}
+🔮 Telegram: ${row.telegram}
+🏷️ Moniker: ${row.moniker}
+⚔️ Role: ${row.role}
+𓃼 OAT: ${row.oat}
+📅 Submitted: ${new Date(row.created_at).toLocaleString()}
         `, {
           reply_markup: {
             inline_keyboard: [[
-              { text: '☬ APPROVE', callback_data: `approve_${row.id}` },
-              { text: '☠ REJECT', callback_data: `reject_${row.id}` }
+              { text: '☬ APPROVE ☬', callback_data: `approve_${row.id}` },
+              { text: '☠ REJECT ☠', callback_data: `reject_${row.id}` }
             ]]
           }
         });
-      }, i * 500);
+      }, index * 500);
     });
   });
 });
 
 bot.on('callback_query', async (ctx) => {
   if (ctx.from.id.toString() !== OWNER_ID) {
-    await ctx.answerCbQuery('☠ Only Elders can judge.');
+    await ctx.answerCbQuery('☠ Only Elders can judge souls.');
     return;
   }
   
@@ -1183,8 +1699,8 @@ bot.on('callback_query', async (ctx) => {
   
   db.get(`SELECT * FROM initiates WHERE id = ?`, [id], async (err, row) => {
     if (err || !row) {
-      await ctx.answerCbQuery('Not found.');
-      await ctx.editMessageText('❌ Initiate not found.');
+      await ctx.answerCbQuery('Initiate not found.');
+      await ctx.editMessageText('❌ Initiate not found. They may have been deleted.');
       return;
     }
     
@@ -1195,9 +1711,12 @@ bot.on('callback_query', async (ctx) => {
            [newStatus, new Date().toISOString(), ctx.from.username || 'Elder', id]);
     
     if (row.telegram) {
+      const username = row.telegram.replace('@', '');
       try {
-        const chat = await bot.telegram.getChat(row.telegram).catch(() => null);
-        if (chat) db.run(`UPDATE initiates SET chat_id = ? WHERE id = ?`, [chat.id.toString(), id]);
+        const chat = await bot.telegram.getChat(`@${username}`).catch(() => null);
+        if (chat) {
+          db.run(`UPDATE initiates SET chat_id = ? WHERE id = ?`, [chat.id.toString(), id]);
+        }
       } catch (e) {}
     }
     
@@ -1214,9 +1733,23 @@ bot.on('callback_query', async (ctx) => {
       emailSent = await sendEmailWithFallback(row.email, subject, html);
     } catch (e) {}
     
-    let statusMsg = `${emoji} #${id} ${row.name} ${newStatus}. ${emoji}`;
-    if (emailSent) statusMsg += `\n✅ Email sent.`;
-    else statusMsg += `\n❌ Email failed.`;
+    let telegramNotified = false;
+    if (row.telegram) {
+      try {
+        const username = row.telegram.replace('@', '');
+        const notifyMessage = action === 'approve' 
+          ? `☬ Congratulations! Your initiation has been APPROVED.\n\nYour OAT: ${row.oat}\n\nWelcome to the Veil, ${row.moniker}.`
+          : `☠ Your initiation has been REJECTED.\n\nYour OAT: ${row.oat}\n\nThe Elders have spoken.`;
+        
+        await bot.telegram.sendMessage(`@${username}`, notifyMessage).catch(() => {});
+        telegramNotified = true;
+      } catch (e) {}
+    }
+    
+    let statusMsg = `${emoji} Initiate #${id} (${row.name}) has been ${newStatus}. ${emoji}`;
+    if (emailSent) statusMsg += `\n✅ Email sent to ${row.email}`;
+    else statusMsg += `\n❌ Email could not be sent`;
+    if (telegramNotified) statusMsg += `\n✅ Telegram notification sent`;
     
     await ctx.editMessageText(statusMsg);
     await ctx.answerCbQuery(`✅ ${newStatus}`);
@@ -1224,56 +1757,108 @@ bot.on('callback_query', async (ctx) => {
 });
 
 bot.command('approve', (ctx) => {
-  if (!isOwner(ctx)) return ctx.reply('☠ Only the Veil Keeper can approve.');
+  if (!isOwner(ctx)) {
+    return ctx.reply('☠ Only the Veil Keeper can approve initiates.');
+  }
   
-  const id = ctx.message.text.split(' ')[1];
-  if (!id) return ctx.reply('☬ Usage: /approve [initiate_id]');
+  const args = ctx.message.text.split(' ');
+  
+  if (args.length < 2) {
+    return ctx.reply(`
+☬ *APPROVE COMMAND USAGE* ☬
+
+/approve [initiate_id]
+
+Accept a pending initiate into the Veil.
+
+Example:
+/approve 5
+
+*Note:* Use /review to see all pending initiates with their IDs.
+    `, { parse_mode: 'Markdown' });
+  }
+  
+  const id = args[1];
   
   db.get(`SELECT * FROM initiates WHERE id = ?`, [id], (err, row) => {
-    if (!row) return ctx.reply('Initiate not found.');
+    if (err || !row) {
+      return ctx.reply('❌ Initiate not found.');
+    }
     
     db.run(`UPDATE initiates SET status = 'approved', reviewed_at = ?, reviewed_by = ? WHERE id = ?`,
            [new Date().toISOString(), ctx.from.username || 'Elder', id]);
     
-    sendEmailWithFallback(row.email, '☬ Initiation APPROVED', `<h1>Approved</h1><p>OAT: ${row.oat}</p>`)
-      .then(sent => ctx.reply(`☬ #${id} approved. ${sent ? 'Email sent.' : 'Email failed.'}`));
+    sendEmailWithFallback(row.email, '☬ Initiation APPROVED', 
+      `<h1>☬ APPROVED</h1><p>OAT: ${row.oat}</p><p>Moniker: ${row.moniker}</p>`)
+      .then(sent => {
+        ctx.reply(`☬ Initiate #${id} (${row.name}) has been APPROVED. ${sent ? 'Email sent.' : 'Email failed.'}`);
+      });
   });
 });
 
 bot.command('reject', (ctx) => {
-  if (!isOwner(ctx)) return ctx.reply('☠ Only the Veil Keeper can reject.');
+  if (!isOwner(ctx)) {
+    return ctx.reply('☠ Only the Veil Keeper can reject initiates.');
+  }
   
-  const id = ctx.message.text.split(' ')[1];
-  if (!id) return ctx.reply('☠ Usage: /reject [initiate_id]');
+  const args = ctx.message.text.split(' ');
+  
+  if (args.length < 2) {
+    return ctx.reply(`
+☠ *REJECT COMMAND USAGE* ☠
+
+/reject [initiate_id]
+
+Deny a pending initiate entry to the Veil.
+
+Example:
+/reject 5
+
+*Note:* Use /review to see all pending initiates with their IDs.
+    `, { parse_mode: 'Markdown' });
+  }
+  
+  const id = args[1];
   
   db.get(`SELECT * FROM initiates WHERE id = ?`, [id], (err, row) => {
-    if (!row) return ctx.reply('Initiate not found.');
+    if (err || !row) {
+      return ctx.reply('❌ Initiate not found.');
+    }
     
     db.run(`UPDATE initiates SET status = 'rejected', reviewed_at = ?, reviewed_by = ? WHERE id = ?`,
            [new Date().toISOString(), ctx.from.username || 'Elder', id]);
     
-    sendEmailWithFallback(row.email, '☠ Initiation REJECTED', `<h1>Rejected</h1><p>OAT: ${row.oat}</p>`)
-      .then(sent => ctx.reply(`☠ #${id} rejected. ${sent ? 'Email sent.' : 'Email failed.'}`));
+    sendEmailWithFallback(row.email, '☠ Initiation REJECTED', 
+      `<h1>☠ REJECTED</h1><p>OAT: ${row.oat}</p><p>Moniker: ${row.moniker}</p>`)
+      .then(sent => {
+        ctx.reply(`☠ Initiate #${id} (${row.name}) has been REJECTED. ${sent ? 'Email sent.' : 'Email failed.'}`);
+      });
   });
 });
 
 bot.command('members', (ctx) => {
-  if (!isOwner(ctx)) return ctx.reply('☠ Only the Veil Keeper can view members.');
+  if (!isOwner(ctx)) {
+    return ctx.reply('☠ Only the Veil Keeper can view members.');
+  }
   
   db.all(`SELECT * FROM initiates WHERE status = 'approved' ORDER BY created_at DESC`, [], (err, rows) => {
-    if (err || !rows?.length) return ctx.reply('☬ No approved initiates.');
+    if (err || !rows || rows.length === 0) {
+      return ctx.reply('☬ No approved initiates yet.');
+    }
     
-    let msg = `☬ SHADOWS OF THE VEIL (${rows.length})\n\n`;
-    rows.slice(0, 20).forEach((r, i) => {
-      msg += `${i+1}. ${r.moniker} (${r.role})\n`;
+    let msg = `☬ *SHADOWS OF THE VEIL* (${rows.length})\n\n`;
+    rows.slice(0, 30).forEach((r, i) => {
+      msg += `${i+1}. ${r.moniker} (${r.role})\n   OAT: ${r.oat}\n`;
     });
-    if (rows.length > 20) msg += `\n... and ${rows.length - 20} more.`;
-    ctx.reply(msg);
+    if (rows.length > 30) msg += `\n... and ${rows.length - 30} more.`;
+    ctx.reply(msg, { parse_mode: 'Markdown' });
   });
 });
 
 bot.command('stats', (ctx) => {
-  if (!isOwner(ctx)) return ctx.reply('☠ Only the Veil Keeper can view stats.');
+  if (!isOwner(ctx)) {
+    return ctx.reply('☠ Only the Veil Keeper can view statistics.');
+  }
   
   db.get(`SELECT 
     COUNT(*) as total,
@@ -1284,7 +1869,7 @@ bot.command('stats', (ctx) => {
     
     db.get(`SELECT COUNT(*) as support FROM support_messages WHERE replied = 0`, [], (sErr, sRow) => {
       ctx.reply(`
-📊 SILENT LEDGER STATISTICS 📊
+📊 *SILENT LEDGER STATISTICS* 📊
 
 Total Souls: ${row?.total || 0}
 ⏳ Pending: ${row?.pending || 0}
@@ -1292,21 +1877,45 @@ Total Souls: ${row?.total || 0}
 ❌ Rejected: ${row?.rejected || 0}
 
 📬 Pending Support: ${sRow?.support || 0}
-      `);
+
+"The Veil watches over all."
+      `, { parse_mode: 'Markdown' });
     });
   });
 });
 
 bot.command('delete', (ctx) => {
-  if (!isOwner(ctx)) return ctx.reply('☠ Only the Veil Keeper can delete.');
+  if (!isOwner(ctx)) {
+    return ctx.reply('☠ Only the Veil Keeper can delete records.');
+  }
   
-  const id = ctx.message.text.split(' ')[1];
-  if (!id) return ctx.reply('🗑️ Usage: /delete [initiate_id]');
+  const args = ctx.message.text.split(' ');
+  
+  if (args.length < 2) {
+    return ctx.reply(`
+🗑️ *DELETE COMMAND USAGE* 🗑️
+
+/delete [initiate_id]
+
+Permanently erase an initiate from the Silent Ledger.
+
+Example:
+/delete 5
+
+*Note:* This action cannot be undone.
+    `, { parse_mode: 'Markdown' });
+  }
+  
+  const id = args[1];
   
   db.run(`DELETE FROM initiates WHERE id = ?`, [id], function(err) {
-    if (err) return ctx.reply('☠ Failed to delete.');
-    if (this.changes === 0) return ctx.reply('Initiate not found.');
-    ctx.reply(`☠ Initiate #${id} erased.`);
+    if (err) {
+      return ctx.reply('☠ Failed to delete record.');
+    }
+    if (this.changes === 0) {
+      return ctx.reply('❌ Initiate not found.');
+    }
+    ctx.reply(`☠ Initiate #${id} has been erased from the Silent Ledger.`);
   });
 });
 
@@ -1323,7 +1932,6 @@ app.post('/api/submit', async (req, res) => {
     return res.status(400).json({ error: 'Missing required fields' });
   }
   
-  // Validate email with ValidKit
   try {
     const validationRes = await axios.post(`${req.protocol}://${req.get('host')}/api/validate-email`, {
       email: data.email
@@ -1340,7 +1948,9 @@ app.post('/api/submit', async (req, res) => {
   }
   
   db.get(`SELECT id FROM initiates WHERE oat = ?`, [data.oat], (err, row) => {
-    if (row) return res.status(409).json({ error: 'OAT already exists' });
+    if (row) {
+      return res.status(409).json({ error: 'OAT already exists in the Silent Ledger' });
+    }
     
     db.run(`INSERT INTO initiates 
             (name, age, gender, phone, email, telegram, moniker, role, skills, oat, status)
@@ -1348,14 +1958,18 @@ app.post('/api/submit', async (req, res) => {
             [data.name, data.age, data.gender, data.phone, data.email, 
              data.telegram, data.moniker, data.role, data.skills, data.oat],
       function(err) {
-        if (err) return res.status(500).json({ error: 'Database error' });
+        if (err) {
+          console.error('Insert error:', err);
+          return res.status(500).json({ error: 'Database error' });
+        }
         
         sendEmailWithFallback(data.email, '𓃼 Initiation Received', 
-          `<h1>Received</h1><p>OAT: ${data.oat}</p>`);
+          `<h1>𓃼 INITIATION RECEIVED</h1><p>Your OAT: ${data.oat}</p><p>Moniker: ${data.moniker}</p><p>The Elders will review your application shortly.</p>`);
         
         if (OWNER_ID) {
           bot.telegram.sendMessage(OWNER_ID, 
-            `𓃼 New initiate #${this.lastID}: ${data.name}`).catch(() => {});
+            `𓃼 New initiate #${this.lastID}: ${data.name} (${data.role})\nUse /review to view.`
+          ).catch(console.error);
         }
         
         res.json({ success: true, id: this.lastID });
@@ -1390,7 +2004,7 @@ app.listen(PORT, '0.0.0.0', () => {
    Owner: ✅ Configured
    Email: ${emailReady ? '✅' : '⚠️'}
    ValidKit: ✅ Configured
-   Features: All 25+ commands working
+   Features: All 30+ commands working
 ╚══════════════════════════════════════════════╝
   `);
   
@@ -1405,11 +2019,13 @@ app.listen(PORT, '0.0.0.0', () => {
 process.once('SIGINT', () => {
   bot.stop('SIGINT');
   db.close();
+  console.log('🛑 Server shut down gracefully');
   process.exit(0);
 });
 
 process.once('SIGTERM', () => {
   bot.stop('SIGTERM');
   db.close();
+  console.log('🛑 Server shut down gracefully');
   process.exit(0);
 });
