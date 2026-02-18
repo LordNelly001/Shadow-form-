@@ -1,12 +1,11 @@
 {
   "name": "shadow-lurkers-bot",
   "version": "3.0.0",
-  "description": "Shadow Lurkers Telegram Bot - Ultimate Edition with Luna Chatbot, Code Generation, Group Management, and Email Notifications",
+  "description": "Shadow Lurkers Telegram Bot - Complete with ValidKit Email Validation",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js",
-    "railway": "railway run"
+    "dev": "nodemon server.js"
   },
   "dependencies": {
     "axios": "^1.6.2",
@@ -22,15 +21,5 @@
   },
   "engines": {
     "node": "18.x"
-  },
-  "keywords": [
-    "telegram-bot",
-    "shadow-lurkers",
-    "chatbot",
-    "group-management",
-    "occult",
-    "cyberpunk"
-  ],
-  "author": "Shadow Lurkers Clan",
-  "license": "MIT"
+  }
 }
